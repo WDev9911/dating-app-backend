@@ -1,0 +1,41 @@
+# ===== Build output =====
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+
+# ===== Visual Studio / Rider / VS Code =====
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ===== Secrets / cấu hình môi trường (KHÔNG commit) =====
+# Chứa connection string, JWT secret, SMTP password, VNPay/Gemini key...
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+**/secrets.json
+*.env
+.env
+
+# ===== User uploads (ảnh hồ sơ, selfie) =====
+wwwroot/uploads/
+
+# ===== Logs / temp =====
+*.log
+logs/
+*.tmp
+
+# ===== OS =====
+Thumbs.db
+.DS_Store
+
+# ===== NuGet =====
+*.nupkg
+packages/

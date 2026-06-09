@@ -1,0 +1,159 @@
+using AutoMapper;
+using SameMess.Application.Common;
+using SameMess.Application.DTOs.Discovery;
+using SameMess.Application.DTOs.Profile;
+using SameMess.Application.Interfaces.Services;
+using SameMess.Application.Reputation;
+using SameMess.Domain.Entities;
+using SameMess.Domain.Enums;
+using SameMess.Domain.Exceptions;
+using SameMess.Domain.Interfaces.Repositories;
+
+namespace SameMess.Application.Services;
+
+public class DiscoveryService : IDiscoveryService
+{
+    // Trần số bản ghi kéo từ DB sau lọc thô (bounding box). Lọc tinh + sắp xếp làm trong bộ nhớ.
+    // Giai đoạn đầu (ít dữ liệu) là đủ; khi scale lớn nên chuyển sang geography + spatial index.
+    private const int FetchCap = 500;
+
+    private readonly IUserRepository _userRepository;
+    private readonly IDiscoveryRepository _discoveryRepository;
+    private readonly ISwipeRepository _swipeRepository;
+    private readonly IBlockRepository _blockRepository;
+    private readonly IReputationService _reputationService;
+    private readonly IMapper _mapper;
+
+    public DiscoveryService(
+        IUserRepository userRepository,
+        IDiscoveryRepository discoveryRepository,
+        ISwipeRepository swipeRepository,
+        IBlockRepository blockRepository,
+        IReputationService reputationService,
+        IMapper mapper)
+    {
+        _userRepository = userRepository;
+        _discoveryRepository = discoveryRepository;
+        _swipeRepository = swipeRepository;
+        _blockRepository = blockRepository;
+        _reputationService = reputationService;
+        _mapper = mapper;
+    }
+
+    public async Task<List<DiscoveryProfileDto>> GetFeedAsync(Guid userId, int limit)
+    {
+        var me = await _userRepository.GetFullProfileAsync(userId)
+            ?? throw new NotFoundException("User", userId);
+
+        var profile = me.Profile;
+        if (profile is null
+            || !profile.IsProfileCompleted
+            || profile.Latitude is null
+            || profile.Longitude is null)
+        {
+            throw new ForbiddenException(
+                "Please complete your profile (info, location and at least one photo) before using Discovery.");
+        }
+
+        // Preferences: nếu chưa có thì dùng mặc định rộng
+        var interestedIn = me.Preference?.InterestedInGender ?? GenderPreference.Everyone;
+        var minAge = me.Preference?.MinAge ?? 18;
+        var maxAge = me.Preference?.MaxAge ?? 99;
+        var maxDistanceKm = me.Preference?.MaxDistanceKm ?? 50;
+
+        var myLat = profile.Latitude.Value;
+        var myLon = profile.Longitude.Value;
+
+        // Khoảng tuổi -> khoảng ngày sinh (đệm thêm 1 năm để lọc thô; lọc tinh lại theo tuổi ở dưới)
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var maxBirthDate = today.AddYears(-minAge);       // sinh muộn nhất => trẻ nhất đúng minAge
+        var minBirthDate = today.AddYears(-maxAge - 1);   // sinh sớm nhất (có đệm)
+
+        var (minLat, maxLat, minLon, maxLon) =
+            GeoCalculator.BoundingBox(myLat, myLon, maxDistanceKm);
+
+        var requiredGender = interestedIn == GenderPreference.Everyone ? null : interestedIn;
+
+        // Thông tin của tôi để lọc 2 chiều (tôi có nằm trong tiêu chí của họ không)
+        var myGender = profile.Gender;
+        var myAge = AgeCalculator.FromDateOfBirth(profile.DateOfBirth) ?? 0;
+
+        // Loại khỏi feed: người tôi đã swipe + người có quan hệ block (2 chiều)
+        // + người đã SuperLike mình (họ chỉ hiển thị ở mục riêng /superliked-me, tránh trùng)
+        var alreadySwiped = await _swipeRepository.GetSwipedTargetIdsAsync(userId);
+        var blockedRelated = await _blockRepository.GetRelatedUserIdsAsync(userId);
+        var superLikers = (await _swipeRepository.GetSuperLikersAsync(userId)).Select(s => s.SwiperId);
+        var excludeIds = alreadySwiped.Concat(blockedRelated).Concat(superLikers).Distinct().ToList();
+
+        var candidates = await _discoveryRepository.GetCandidatesAsync(
+            userId, excludeIds, requiredGender, myGender, myAge, minBirthDate, maxBirthDate,
+            minLat, maxLat, minLon, maxLon, FetchCap);
+
+        // Lọc tinh tuổi + khoảng cách (2 chiều) trước, giữ lại ứng viên hợp lệ
+        var passed = new List<(UserProfile Candidate, int Age, double Distance, bool IsBoosted)>();
+        foreach (var candidate in candidates)
+        {
+            // Lọc tinh tuổi (chính xác, không đệm)
+            var age = AgeCalculator.FromDateOfBirth(candidate.DateOfBirth);
+            if (age is null || age < minAge || age > maxAge)
+                continue;
+
+            // Lọc tinh khoảng cách: từ hình vuông -> hình tròn chính xác
+            var distance = GeoCalculator.DistanceKm(
+                myLat, myLon, candidate.Latitude!.Value, candidate.Longitude!.Value);
+            if (distance > maxDistanceKm)
+                continue;
+
+            // Lọc 2 chiều khoảng cách: tôi cũng phải nằm trong bán kính họ chấp nhận
+            var theirMaxDistance = candidate.User?.Preference?.MaxDistanceKm ?? 50;
+            if (distance > theirMaxDistance)
+                continue;
+
+            var isBoosted = candidate.BoostedUntil.HasValue && candidate.BoostedUntil.Value > now;
+            passed.Add((candidate, age.Value, distance, isBoosted));
+        }
+
+        // Điểm uy tín theo lô để xếp hạng + gắn badge (fail-safe: lỗi thì coi mọi người là khởi điểm)
+        Dictionary<Guid, int> scores;
+        try { scores = await _reputationService.GetScoresAsync(passed.Select(p => p.Candidate.UserId)); }
+        catch { scores = new Dictionary<Guid, int>(); }
+
+        // Boost lên đầu → rồi uy tín cao hơn → rồi gần hơn
+        return passed
+            .Select(p =>
+            {
+                var score = scores.TryGetValue(p.Candidate.UserId, out var s) ? s : ReputationConfig.StartScore;
+                var dto = MapToDto(p.Candidate, p.Age, p.Distance, p.IsBoosted, ReputationConfig.TierOf(score));
+                return (Dto: dto, Score: score);
+            })
+            .OrderByDescending(x => x.Dto.IsBoosted)
+            .ThenByDescending(x => x.Score)
+            .ThenBy(x => x.Dto.DistanceKm)
+            .Take(limit)
+            .Select(x => x.Dto)
+            .ToList();
+    }
+
+    private DiscoveryProfileDto MapToDto(UserProfile profile, int age, double distanceKm, bool isBoosted, string reputationTier)
+    {
+        var photos = profile.User?.Photos ?? new List<Photo>();
+
+        return new DiscoveryProfileDto
+        {
+            UserId = profile.UserId,
+            DisplayName = profile.DisplayName,
+            Age = age,
+            Gender = profile.Gender,
+            Bio = profile.Bio,
+            Height = profile.Height,
+            Location = profile.Location,
+            DatingGoal = profile.DatingGoal,
+            DistanceKm = Math.Max(1, (int)Math.Round(distanceKm)), // làm tròn, tối thiểu 1km
+            IsBoosted = isBoosted,
+            IsPhotoVerified = profile.IsPhotoVerified,
+            ReputationTier = reputationTier,
+            Photos = _mapper.Map<List<PhotoDto>>(photos.OrderBy(p => p.OrderIndex)),
+        };
+    }
+}

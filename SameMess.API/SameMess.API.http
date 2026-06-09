@@ -1,0 +1,6 @@
+@SameMess.API_HostAddress = http://localhost:5119
+
+GET {{SameMess.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

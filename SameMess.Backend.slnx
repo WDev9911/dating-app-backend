@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SameMess.API/SameMess.API.csproj" />
+  <Project Path="SameMess.Application/SameMess.Application.csproj" />
+  <Project Path="SameMess.Domain/SameMess.Domain.csproj" />
+  <Project Path="SameMess.Infrastructure/SameMess.Infrastructure.csproj" />
+</Solution>
