@@ -133,11 +133,13 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Bật Swagger ở MỌI môi trường (kể cả Production trên Render) để tiện test/demo API.
+// Muốn ẩn ở production thật sau này thì bọc lại trong if (app.Environment.IsDevelopment()).
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Trang gốc "/" tự chuyển hướng sang Swagger UI (thay vì trả 404).
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Chỉ ép HTTPS ở local dev. Trên production, reverse proxy (Render/Nginx) đã đảm nhận TLS.
 if (app.Environment.IsDevelopment())
