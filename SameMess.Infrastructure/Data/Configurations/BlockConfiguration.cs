@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,16 +13,16 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.HasKey(b => b.Id);
 
         builder.Property(b => b.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(b => b.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Mỗi (blocker, blocked) chỉ một bản ghi
+        // Má»—i (blocker, blocked) chá»‰ má»™t báº£n ghi
         builder.HasIndex(b => new { b.BlockerId, b.BlockedId })
             .IsUnique();
 
-        // Hỗ trợ tra cứu "ai đã block tôi"
+        // Há»— trá»£ tra cá»©u "ai Ä‘Ã£ block tÃ´i"
         builder.HasIndex(b => b.BlockedId);
 
         builder.HasOne<User>()

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,7 +13,7 @@ public class ReputationEventConfiguration : IEntityTypeConfiguration<ReputationE
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(e => e.Type)
             .IsRequired()
@@ -27,9 +27,9 @@ public class ReputationEventConfiguration : IEntityTypeConfiguration<ReputationE
             .HasMaxLength(300);
 
         builder.Property(e => e.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Tra cứu log theo user (tính điểm + xét "đã có sự kiện 1-lần chưa")
+        // Tra cá»©u log theo user (tÃ­nh Ä‘iá»ƒm + xÃ©t "Ä‘Ã£ cÃ³ sá»± kiá»‡n 1-láº§n chÆ°a")
         builder.HasIndex(e => new { e.UserId, e.Type });
 
         builder.HasOne<User>()

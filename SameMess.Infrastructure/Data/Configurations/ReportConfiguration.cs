@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,7 +13,7 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(r => r.Reason)
             .IsRequired()
@@ -27,7 +27,7 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
             .HasMaxLength(20);
 
         builder.Property(r => r.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
         builder.HasIndex(r => r.ReportedId);
 

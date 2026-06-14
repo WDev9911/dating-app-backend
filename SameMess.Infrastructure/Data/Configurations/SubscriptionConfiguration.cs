@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,13 +13,13 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(s => s.PlanCode)
             .IsRequired()
             .HasMaxLength(20);
 
-        // Mỗi user một thuê bao
+        // Má»—i user má»™t thuÃª bao
         builder.HasIndex(s => s.UserId).IsUnique();
 
         builder.HasOne<User>()

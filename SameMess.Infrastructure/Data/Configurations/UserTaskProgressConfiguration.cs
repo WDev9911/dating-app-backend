@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,7 +13,7 @@ public class UserTaskProgressConfiguration : IEntityTypeConfiguration<UserTaskPr
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(p => p.TaskCode)
             .IsRequired()
@@ -23,7 +23,7 @@ public class UserTaskProgressConfiguration : IEntityTypeConfiguration<UserTaskPr
             .IsRequired()
             .HasMaxLength(20);
 
-        // Mỗi (user, nhiệm vụ, kỳ) chỉ một dòng tiến độ
+        // Má»—i (user, nhiá»‡m vá»¥, ká»³) chá»‰ má»™t dÃ²ng tiáº¿n Ä‘á»™
         builder.HasIndex(p => new { p.UserId, p.TaskCode, p.PeriodKey })
             .IsUnique();
 

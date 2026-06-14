@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,16 +13,16 @@ public class PushSubscriptionConfiguration : IEntityTypeConfiguration<PushSubscr
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(s => s.Endpoint).IsRequired().HasMaxLength(1000);
         builder.Property(s => s.P256dh).IsRequired().HasMaxLength(300);
         builder.Property(s => s.Auth).IsRequired().HasMaxLength(200);
 
         builder.Property(s => s.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Mỗi (user, endpoint) chỉ một đăng ký
+        // Má»—i (user, endpoint) chá»‰ má»™t Ä‘Äƒng kÃ½
         builder.HasIndex(s => new { s.UserId, s.Endpoint }).IsUnique();
 
         builder.HasOne<User>()

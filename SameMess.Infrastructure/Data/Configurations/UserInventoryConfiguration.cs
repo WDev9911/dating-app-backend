@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,13 +13,13 @@ public class UserInventoryConfiguration : IEntityTypeConfiguration<UserInventory
         builder.HasKey(i => i.Id);
 
         builder.Property(i => i.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(i => i.MaterialType)
             .IsRequired()
             .HasMaxLength(20);
 
-        // Mỗi (user, loại nguyên liệu) chỉ một dòng
+        // Má»—i (user, loáº¡i nguyÃªn liá»‡u) chá»‰ má»™t dÃ²ng
         builder.HasIndex(i => new { i.UserId, i.MaterialType })
             .IsUnique();
 

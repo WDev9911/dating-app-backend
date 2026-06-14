@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,16 +13,16 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.HasKey(m => m.Id);
 
         builder.Property(m => m.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(m => m.Content)
             .IsRequired()
             .HasMaxLength(2000);
 
         builder.Property(m => m.SentAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Hỗ trợ phân trang lịch sử theo thời gian
+        // Há»— trá»£ phÃ¢n trang lá»‹ch sá»­ theo thá»i gian
         builder.HasIndex(m => new { m.ConversationId, m.SentAt });
 
         builder.HasOne(m => m.Conversation)
@@ -30,7 +30,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .HasForeignKey(m => m.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // FK người gửi tới Users (Restrict để tránh multiple cascade paths)
+        // FK ngÆ°á»i gá»­i tá»›i Users (Restrict Ä‘á»ƒ trÃ¡nh multiple cascade paths)
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(m => m.SenderId)

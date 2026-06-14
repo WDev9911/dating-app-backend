@@ -1,0 +1,30 @@
+# Build output (sẽ build lại trong image)
+**/bin/
+**/obj/
+
+# IDE / VCS
+.vs/
+.vscode/
+.idea/
+.git/
+.gitignore
+
+# Secrets / cấu hình local (KHÔNG đưa vào image)
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+*.env
+.env
+**/secrets.json
+
+# Ảnh người dùng upload + log
+wwwroot/uploads/
+*.log
+logs/
+
+# Tài liệu / script không cần trong image
+docs/
+scripts/
+*.md
+Dockerfile
+.dockerignore

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,16 +13,16 @@ public class ReputationScoreConfiguration : IEntityTypeConfiguration<ReputationS
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(s => s.Tier)
             .IsRequired()
             .HasMaxLength(20);
 
         builder.Property(s => s.UpdatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Mỗi user một dòng điểm
+        // Má»—i user má»™t dÃ²ng Ä‘iá»ƒm
         builder.HasIndex(s => s.UserId)
             .IsUnique();
 

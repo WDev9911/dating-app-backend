@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,7 +13,7 @@ public class MatchPlantConfiguration : IEntityTypeConfiguration<MatchPlant>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(p => p.Level)
             .HasDefaultValue(1);
@@ -22,12 +22,12 @@ public class MatchPlantConfiguration : IEntityTypeConfiguration<MatchPlant>
             .HasMaxLength(12);
 
         builder.Property(p => p.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
         builder.Property(p => p.UpdatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // 1-1 với Match
+        // 1-1 vá»›i Match
         builder.HasIndex(p => p.MatchId)
             .IsUnique();
 

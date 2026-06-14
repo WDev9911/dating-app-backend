@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,23 +13,23 @@ public class SwipeConfiguration : IEntityTypeConfiguration<Swipe>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(s => s.Action)
             .IsRequired()
             .HasMaxLength(20);
 
         builder.Property(s => s.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Mỗi người chỉ swipe một target đúng một lần
+        // Má»—i ngÆ°á»i chá»‰ swipe má»™t target Ä‘Ãºng má»™t láº§n
         builder.HasIndex(s => new { s.SwiperId, s.TargetUserId })
             .IsUnique();
 
-        // Hỗ trợ tra cứu ngược ("ai đã like tôi" / kiểm tra match)
+        // Há»— trá»£ tra cá»©u ngÆ°á»£c ("ai Ä‘Ã£ like tÃ´i" / kiá»ƒm tra match)
         builder.HasIndex(s => s.TargetUserId);
 
-        // FK tới Users (Restrict để tránh multiple cascade paths khi 2 FK cùng trỏ về Users)
+        // FK tá»›i Users (Restrict Ä‘á»ƒ trÃ¡nh multiple cascade paths khi 2 FK cÃ¹ng trá» vá» Users)
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(s => s.SwiperId)

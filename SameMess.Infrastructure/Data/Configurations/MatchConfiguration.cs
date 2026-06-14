@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,15 +13,15 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasKey(m => m.Id);
 
         builder.Property(m => m.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(m => m.IsActive)
             .HasDefaultValue(true);
 
         builder.Property(m => m.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Mỗi cặp (đã chuẩn hóa A<B) chỉ có một match — chặn race condition tạo trùng
+        // Má»—i cáº·p (Ä‘Ã£ chuáº©n hÃ³a A<B) chá»‰ cÃ³ má»™t match â€” cháº·n race condition táº¡o trÃ¹ng
         builder.HasIndex(m => new { m.UserAId, m.UserBId })
             .IsUnique();
 

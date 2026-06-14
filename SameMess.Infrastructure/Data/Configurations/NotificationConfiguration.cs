@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SameMess.Domain.Entities;
 
@@ -13,7 +13,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.HasKey(n => n.Id);
 
         builder.Property(n => n.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(n => n.Type).IsRequired().HasMaxLength(20);
         builder.Property(n => n.Title).IsRequired().HasMaxLength(200);
@@ -21,9 +21,9 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.Data).HasMaxLength(500);
 
         builder.Property(n => n.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("now() at time zone 'utc'");
 
-        // Tra cứu feed theo user, mới nhất trước
+        // Tra cá»©u feed theo user, má»›i nháº¥t trÆ°á»›c
         builder.HasIndex(n => new { n.UserId, n.CreatedAt });
 
         builder.HasOne<User>()

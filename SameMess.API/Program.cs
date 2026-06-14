@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SameMess.API.Hubs;
@@ -9,9 +10,19 @@ using SameMess.API.Services;
 using SameMess.Application;
 using SameMess.Application.Interfaces.Services;
 using SameMess.Infrastructure;
+using SameMess.Infrastructure.Data;
 using SameMess.Infrastructure.Services;
 
+// App lưu thời gian dạng UTC (DateTime.UtcNow). Bật chế độ legacy của Npgsql để map
+// DateTime -> "timestamp without time zone" và không bắt buộc Kind=Utc (tránh lỗi khi ghi timestamptz).
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Host PaaS (Render/Fly/Railway) cấp cổng động qua biến môi trường PORT → Kestrel lắng nghe đúng cổng đó.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 const string WebClientCorsPolicy = "WebClient";
 
@@ -113,6 +124,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+// Tự áp dụng migration khi khởi động → DB (local hoặc cloud) tự tạo/cập nhật schema, khỏi chạy tay.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -121,7 +139,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Chỉ ép HTTPS ở local dev. Trên production, reverse proxy (Render/Nginx) đã đảm nhận TLS.
+if (app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
 app.UseStaticFiles();      // phục vụ ảnh đã upload trong wwwroot
 app.UseCors(WebClientCorsPolicy);
 app.UseAuthentication();
