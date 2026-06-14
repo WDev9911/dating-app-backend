@@ -16,6 +16,7 @@ public static class DependencyInjection
     {
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
+        services.Configure<ResendSettings>(configuration.GetSection("Resend"));
         services.Configure<AiSettings>(configuration.GetSection("Ai"));
         services.Configure<VNPaySettings>(configuration.GetSection("VNPay"));
         services.Configure<WebPushSettings>(configuration.GetSection("WebPush"));
@@ -47,7 +48,13 @@ public static class DependencyInjection
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
-        services.AddScoped<IEmailService, EmailService>();
+
+        // Có Resend:ApiKey -> gửi email qua Resend HTTP API (chạy được trên cloud, không bị chặn cổng SMTP).
+        // Không có -> dùng SMTP (tiện cho local dev với Gmail).
+        if (!string.IsNullOrWhiteSpace(configuration["Resend:ApiKey"]))
+            services.AddHttpClient<IEmailService, ResendEmailService>(c => c.Timeout = TimeSpan.FromSeconds(20));
+        else
+            services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IPaymentGateway, VNPayGateway>();
         services.AddScoped<IFaceVerificationService, StubFaceVerificationService>();
         services.AddScoped<IPushSender, LogPushSender>();
