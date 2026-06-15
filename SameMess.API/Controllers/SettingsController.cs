@@ -14,17 +14,20 @@ public class SettingsController : ApiControllerBase
 {
     private readonly ISettingsService _settingsService;
     private readonly IPreferenceService _preferenceService;
+    private readonly IInterestsService _interestsService;
     private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
     private readonly IValidator<UpdatePreferenceDto> _updatePreferenceValidator;
 
     public SettingsController(
         ISettingsService settingsService,
         IPreferenceService preferenceService,
+        IInterestsService interestsService,
         IValidator<ChangePasswordDto> changePasswordValidator,
         IValidator<UpdatePreferenceDto> updatePreferenceValidator)
     {
         _settingsService = settingsService;
         _preferenceService = preferenceService;
+        _interestsService = interestsService;
         _changePasswordValidator = changePasswordValidator;
         _updatePreferenceValidator = updatePreferenceValidator;
     }
@@ -80,4 +83,17 @@ public class SettingsController : ApiControllerBase
 
         return Ok(await _preferenceService.UpdatePreferenceAsync(CurrentUserId, dto));
     }
+
+    /// <summary>Lấy danh sách sở thích đã chọn của tôi.</summary>
+    [HttpGet("interests")]
+    [ProducesResponseType(typeof(List<InterestDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInterests()
+        => Ok(await _interestsService.GetMyInterestsAsync(CurrentUserId));
+
+    /// <summary>Cập nhật sở thích của tôi (gửi danh sách interestId, tối đa 10).</summary>
+    [HttpPut("interests")]
+    [ProducesResponseType(typeof(List<InterestDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateInterests([FromBody] UpdateInterestsDto dto)
+        => Ok(await _interestsService.UpdateMyInterestsAsync(CurrentUserId, dto));
 }

@@ -17,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IPreferenceService, PreferenceService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<IInterestsService, InterestsService>();
+        services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IDiscoveryService, DiscoveryService>();
         services.AddScoped<ISwipeService, SwipeService>();
         services.AddScoped<IMatchService, MatchService>();

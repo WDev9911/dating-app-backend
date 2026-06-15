@@ -29,6 +29,8 @@ public class AppDbContext : DbContext
     public DbSet<PaymentOrder> PaymentOrders { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<PushSubscription> PushSubscriptions { get; set; }
+    public DbSet<Interest> Interests { get; set; }
+    public DbSet<UserInterest> UserInterests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

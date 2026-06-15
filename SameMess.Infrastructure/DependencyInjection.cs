@@ -46,6 +46,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentOrderRepository, PaymentOrderRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<IInterestRepository, InterestRepository>();
+        services.AddScoped<IUserInterestRepository, UserInterestRepository>();
+        services.AddScoped<ISearchRepository, SearchRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 
