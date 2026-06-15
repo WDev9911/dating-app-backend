@@ -9,4 +9,5 @@ public interface IEventRegistrationRepository : IBaseRepository<EventRegistratio
     Task<List<EventRegistration>> GetUserRegistrationsAsync(Guid userId);
     Task<List<Guid>> GetRegisteredEventIdsAsync(Guid userId);
     Task<Dictionary<Guid, int>> GetCountsByEventsAsync(IReadOnlyCollection<Guid> eventIds);
+    Task<List<EventRegistration>> GetByEventAsync(Guid eventId);
 }

@@ -41,8 +41,85 @@ public class AdminReportService : IAdminReportService
             Reason = r.Reason,
             Description = r.Description,
             Status = r.Status,
+            AssignedToAdminId = r.AssignedToAdminId,
+            ResolutionNote = r.ResolutionNote,
             CreatedAt = r.CreatedAt,
         }).ToList();
+    }
+
+    public async Task<ReportDto> GetReportDetailAsync(Guid reportId)
+    {
+        var r = await _reportRepository.GetByIdAsync(reportId)
+            ?? throw new NotFoundException("Report", reportId);
+
+        var reported = await _userRepository.GetWithProfileAsync(r.ReportedId);
+        return new ReportDto
+        {
+            Id = r.Id,
+            ReportedId = r.ReportedId,
+            ReportedDisplayName = reported?.Profile?.DisplayName ?? string.Empty,
+            ReporterId = r.ReporterId,
+            Reason = r.Reason,
+            Description = r.Description,
+            Status = r.Status,
+            AssignedToAdminId = r.AssignedToAdminId,
+            ResolutionNote = r.ResolutionNote,
+            CreatedAt = r.CreatedAt,
+        };
+    }
+
+    public async Task AssignAsync(Guid reportId, Guid assignToAdminId)
+    {
+        var report = await _reportRepository.GetByIdAsync(reportId)
+            ?? throw new NotFoundException("Report", reportId);
+
+        report.AssignedToAdminId = assignToAdminId;
+        if (report.Status == ReportStatus.Pending)
+            report.Status = ReportStatus.Reviewed;
+
+        await _reportRepository.UpdateAsync(report);
+        await _reportRepository.SaveChangesAsync();
+    }
+
+    public async Task ResolveReportAsync(Guid reportId, string? action, string? note)
+    {
+        var report = await _reportRepository.GetByIdAsync(reportId)
+            ?? throw new NotFoundException("Report", reportId);
+
+        report.Status = ReportStatus.Resolved;
+        report.ResolutionNote = note;
+        await _reportRepository.UpdateAsync(report);
+
+        if (string.Equals(action, "ban", StringComparison.OrdinalIgnoreCase))
+        {
+            var user = await _userRepository.GetByIdAsync(report.ReportedId);
+            if (user is not null)
+            {
+                user.Status = UserStatus.Banned;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateAsync(user);
+            }
+        }
+
+        await _reportRepository.SaveChangesAsync();
+
+        try
+        {
+            await _reputationService.RecordEventAsync(
+                report.ReportedId, ReputationEventType.ReportUpheld, $"Report {report.Reason} resolved by admin");
+        }
+        catch { /* không để uy tín làm hỏng luồng admin */ }
+    }
+
+    public async Task DismissReportAsync(Guid reportId, string? note)
+    {
+        var report = await _reportRepository.GetByIdAsync(reportId)
+            ?? throw new NotFoundException("Report", reportId);
+
+        report.Status = ReportStatus.Dismissed;
+        report.ResolutionNote = note;
+        await _reportRepository.UpdateAsync(report);
+        await _reportRepository.SaveChangesAsync();
     }
 
     public async Task ResolveAsync(Guid reportId, UpdateReportStatusDto dto)

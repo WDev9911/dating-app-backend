@@ -21,6 +21,14 @@ public static class DependencyInjection
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<ISafetyService, SafetyService>();
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IAdminPhotoService, AdminPhotoService>();
+        services.AddScoped<IAdminEventService, AdminEventService>();
+        services.AddScoped<IAdminPlanService, AdminPlanService>();
+        services.AddScoped<IAdminInterestService, AdminInterestService>();
+        services.AddScoped<IAdminSettingsService, AdminSettingsService>();
         services.AddScoped<IDiscoveryService, DiscoveryService>();
         services.AddScoped<ISwipeService, SwipeService>();
         services.AddScoped<IMatchService, MatchService>();

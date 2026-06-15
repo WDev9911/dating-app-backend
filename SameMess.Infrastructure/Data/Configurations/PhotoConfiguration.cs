@@ -19,6 +19,16 @@ public class PhotoConfiguration : IEntityTypeConfiguration<Photo>
             .IsRequired()
             .HasMaxLength(500);
 
+        builder.Property(p => p.Status)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue(Domain.Enums.PhotoStatus.Approved);
+
+        builder.Property(p => p.RejectionReason)
+            .HasMaxLength(500);
+
+        builder.HasIndex(p => p.Status);
+
         builder.Property(p => p.CreatedAt)
             .HasDefaultValueSql("now() at time zone 'utc'");
 

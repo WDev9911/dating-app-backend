@@ -36,6 +36,10 @@ public class AppDbContext : DbContext
     public DbSet<SafetyCheckIn> SafetyCheckIns { get; set; }
     public DbSet<Event> Events { get; set; }
     public DbSet<EventRegistration> EventRegistrations { get; set; }
+    public DbSet<AdminNote> AdminNotes { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<AppSetting> AppSettings { get; set; }
+    public DbSet<FeatureFlag> FeatureFlags { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

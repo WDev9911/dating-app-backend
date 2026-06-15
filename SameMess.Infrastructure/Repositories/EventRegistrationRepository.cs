@@ -27,6 +27,11 @@ public class EventRegistrationRepository : BaseRepository<EventRegistration>, IE
             .Select(r => r.EventId)
             .ToListAsync();
 
+    public async Task<List<EventRegistration>> GetByEventAsync(Guid eventId) =>
+        await _dbSet.Where(r => r.EventId == eventId)
+            .OrderByDescending(r => r.RegisteredAt)
+            .ToListAsync();
+
     public async Task<Dictionary<Guid, int>> GetCountsByEventsAsync(IReadOnlyCollection<Guid> eventIds) =>
         await _dbSet
             .Where(r => eventIds.Contains(r.EventId) && r.Status != EventRegistrationStatus.Cancelled)

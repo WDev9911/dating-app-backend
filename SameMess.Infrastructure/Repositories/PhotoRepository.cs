@@ -13,4 +13,10 @@ public class PhotoRepository : BaseRepository<Photo>, IPhotoRepository
         await _dbSet.Where(p => p.UserId == userId)
             .OrderBy(p => p.OrderIndex)
             .ToListAsync();
+
+    public async Task<List<Photo>> GetByStatusAsync(string status) =>
+        await _dbSet.Include(p => p.User).ThenInclude(u => u.Profile)
+            .Where(p => p.Status == status)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
 }

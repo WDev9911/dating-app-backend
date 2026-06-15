@@ -100,6 +100,20 @@ public class ProfileVerificationService : IProfileVerificationService
         }).ToList();
     }
 
+    public async Task<PendingVerificationDto> GetDetailAsync(Guid userId)
+    {
+        var user = await _userRepository.GetFullProfileAsync(userId)
+            ?? throw new NotFoundException("User", userId);
+
+        return new PendingVerificationDto
+        {
+            UserId = user.Id,
+            DisplayName = user.Profile?.DisplayName ?? string.Empty,
+            SelfieUrl = user.Profile?.VerificationSelfieUrl,
+            ProfilePhotoUrl = (user.Photos.FirstOrDefault(p => p.IsPrimary) ?? user.Photos.FirstOrDefault())?.Url,
+        };
+    }
+
     public async Task<VerificationStatusDto> ReviewAsync(Guid userId, bool approve)
     {
         var user = await _userRepository.GetWithProfileAsync(userId)

@@ -26,6 +26,9 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
             .IsRequired()
             .HasMaxLength(20);
 
+        builder.Property(r => r.ResolutionNote)
+            .HasMaxLength(1000);
+
         builder.Property(r => r.CreatedAt)
             .HasDefaultValueSql("now() at time zone 'utc'");
 

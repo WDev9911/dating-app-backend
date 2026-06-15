@@ -9,5 +9,7 @@ public class ReportDto
     public string Reason { get; set; } = null!;
     public string? Description { get; set; }
     public string Status { get; set; } = null!;
+    public Guid? AssignedToAdminId { get; set; }
+    public string? ResolutionNote { get; set; }
     public DateTime CreatedAt { get; set; }
 }

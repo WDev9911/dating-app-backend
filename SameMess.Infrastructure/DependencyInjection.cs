@@ -54,6 +54,12 @@ public static class DependencyInjection
         services.AddScoped<ISafetyCheckInRepository, SafetyCheckInRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventRegistrationRepository, EventRegistrationRepository>();
+        services.AddScoped<IAdminNoteRepository, AdminNoteRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+        services.AddScoped<IAdminStatsRepository, AdminStatsRepository>();
+        services.AddScoped<IAppSettingRepository, AppSettingRepository>();
+        services.AddScoped<IFeatureFlagRepository, FeatureFlagRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 

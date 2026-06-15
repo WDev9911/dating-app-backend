@@ -11,4 +11,14 @@ public class SubscriptionRepository : BaseRepository<Subscription>, ISubscriptio
 
     public async Task<Subscription?> GetByUserAsync(Guid userId) =>
         await _dbSet.FirstOrDefaultAsync(s => s.UserId == userId);
+
+    public async Task<List<Subscription>> GetSubscribersAsync(string? planCode, bool activeOnly)
+    {
+        var query = _dbSet.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(planCode))
+            query = query.Where(s => s.PlanCode == planCode);
+        if (activeOnly)
+            query = query.Where(s => s.ExpiresAt > DateTime.UtcNow);
+        return await query.OrderByDescending(s => s.UpdatedAt).ToListAsync();
+    }
 }

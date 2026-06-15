@@ -12,6 +12,9 @@ public interface IProfileVerificationService
     /// <summary>[Admin] Danh sách hồ sơ chờ duyệt (case so khớp không chắc).</summary>
     Task<List<PendingVerificationDto>> GetPendingAsync();
 
+    /// <summary>[Admin] Chi tiết một hồ sơ xác minh (selfie + ảnh hồ sơ).</summary>
+    Task<PendingVerificationDto> GetDetailAsync(Guid userId);
+
     /// <summary>[Admin] Duyệt/từ chối một hồ sơ đang Pending.</summary>
     Task<VerificationStatusDto> ReviewAsync(Guid userId, bool approve);
 }
