@@ -60,6 +60,10 @@ public static class DependencyInjection
         services.AddScoped<IAdminStatsRepository, AdminStatsRepository>();
         services.AddScoped<IAppSettingRepository, AppSettingRepository>();
         services.AddScoped<IFeatureFlagRepository, FeatureFlagRepository>();
+        services.AddScoped<IUserXpRepository, UserXpRepository>();
+        services.AddScoped<IDailyQuestCompletionRepository, DailyQuestCompletionRepository>();
+        services.AddScoped<INudgeDismissalRepository, NudgeDismissalRepository>();
+        services.AddScoped<IMeetupProposalRepository, MeetupProposalRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 

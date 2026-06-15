@@ -40,6 +40,10 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<AppSetting> AppSettings { get; set; }
     public DbSet<FeatureFlag> FeatureFlags { get; set; }
+    public DbSet<UserXp> UserXp { get; set; }
+    public DbSet<DailyQuestCompletion> DailyQuestCompletions { get; set; }
+    public DbSet<NudgeDismissal> NudgeDismissals { get; set; }
+    public DbSet<MeetupProposal> MeetupProposals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
