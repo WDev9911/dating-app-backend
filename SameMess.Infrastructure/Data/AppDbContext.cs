@@ -31,6 +31,9 @@ public class AppDbContext : DbContext
     public DbSet<PushSubscription> PushSubscriptions { get; set; }
     public DbSet<Interest> Interests { get; set; }
     public DbSet<UserInterest> UserInterests { get; set; }
+    public DbSet<SafetyProfile> SafetyProfiles { get; set; }
+    public DbSet<EmergencyContact> EmergencyContacts { get; set; }
+    public DbSet<SafetyCheckIn> SafetyCheckIns { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
