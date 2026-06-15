@@ -10,6 +10,10 @@ public class User
     public bool IsPhoneVerified { get; set; }
     public string Role { get; set; } = null!;
     public string Status { get; set; } = null!;
+
+    // Cài đặt bảo mật (Settings > Security)
+    public bool TwoFactorEnabled { get; set; }
+    public bool LoginAlertsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

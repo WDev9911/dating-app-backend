@@ -41,6 +41,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(50);
 
+        builder.Property(u => u.TwoFactorEnabled)
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.LoginAlertsEnabled)
+            .HasDefaultValue(true);
+
         builder.Property(u => u.CreatedAt)
             .HasDefaultValueSql("now() at time zone 'utc'");
 
