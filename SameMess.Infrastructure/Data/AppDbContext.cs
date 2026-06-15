@@ -34,6 +34,8 @@ public class AppDbContext : DbContext
     public DbSet<SafetyProfile> SafetyProfiles { get; set; }
     public DbSet<EmergencyContact> EmergencyContacts { get; set; }
     public DbSet<SafetyCheckIn> SafetyCheckIns { get; set; }
+    public DbSet<Event> Events { get; set; }
+    public DbSet<EventRegistration> EventRegistrations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

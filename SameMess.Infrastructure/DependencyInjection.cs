@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<ISafetyProfileRepository, SafetyProfileRepository>();
         services.AddScoped<IEmergencyContactRepository, EmergencyContactRepository>();
         services.AddScoped<ISafetyCheckInRepository, SafetyCheckInRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IEventRegistrationRepository, EventRegistrationRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 
