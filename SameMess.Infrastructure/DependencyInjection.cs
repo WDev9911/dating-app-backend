@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));
+        services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
         services.Configure<AiSettings>(configuration.GetSection("Ai"));
         services.Configure<VNPaySettings>(configuration.GetSection("VNPay"));
         services.Configure<WebPushSettings>(configuration.GetSection("WebPush"));

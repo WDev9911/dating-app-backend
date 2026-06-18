@@ -109,8 +109,11 @@ builder.Services.AddCors(options =>
             .AllowCredentials()); // cần thiết để gửi/nhận refresh token cookie
 });
 
-// Lưu ảnh local (đổi sang cloud sau chỉ cần thay implementation này)
-builder.Services.AddScoped<IPhotoStorageService, LocalPhotoStorageService>();
+// Lưu ảnh: có cấu hình Cloudinary -> dùng Cloudinary (bền, CDN); không thì lưu ổ đĩa local (dev).
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Cloudinary:CloudName"]))
+    builder.Services.AddScoped<IPhotoStorageService, CloudinaryPhotoStorageService>();
+else
+    builder.Services.AddScoped<IPhotoStorageService, LocalPhotoStorageService>();
 
 // SignalR cho chat realtime; định danh user bằng claim "sub"
 builder.Services.AddSignalR();
