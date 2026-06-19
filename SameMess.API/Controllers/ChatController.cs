@@ -63,6 +63,17 @@ public class ChatController : ApiControllerBase
         return Ok(message);
     }
 
+    /// <summary>Chia sẻ một địa điểm vào hội thoại (tin nhắn kiểu "venue" → thẻ quán, bấm xem chi tiết).</summary>
+    [HttpPost("{conversationId:guid}/venue")]
+    [ProducesResponseType(typeof(MessageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ShareVenue(Guid conversationId, [FromBody] ShareVenueDto dto)
+    {
+        var (message, _) = await _chatService.ShareVenueAsync(CurrentUserId, conversationId, dto.VenueId);
+        return Ok(message);
+    }
+
     /// <summary>Đánh dấu đã đọc toàn bộ tin trong hội thoại.</summary>
     [HttpPost("{conversationId:guid}/read")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

@@ -8,6 +8,9 @@ public interface IVenueService
     /// <summary>Gợi ý quán gần điểm giữa 2 người trong match — yêu cầu cây ≥ Level 4.</summary>
     Task<List<VenueDto>> GetNearbyForMatchAsync(Guid userId, Guid matchId, string? category, int? radiusKm);
 
+    /// <summary>Chi tiết 1 địa điểm (bấm vào thẻ quán trong chat).</summary>
+    Task<VenueDto> GetByIdAsync(Guid id);
+
     // Admin
     Task<List<VenueDto>> ListAsync(bool includeInactive);
     Task<VenueDto> CreateAsync(Guid adminId, VenuePayloadDto dto);

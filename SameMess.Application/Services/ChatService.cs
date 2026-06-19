@@ -20,6 +20,7 @@ public class ChatService : IChatService
     private readonly ITaskService _taskService;
     private readonly IReputationService _reputationService;
     private readonly INotificationService _notificationService;
+    private readonly IVenueRepository _venueRepository;
 
     public ChatService(
         IConversationRepository conversationRepository,
@@ -29,7 +30,8 @@ public class ChatService : IChatService
         IAiAssistantService aiAssistant,
         ITaskService taskService,
         IReputationService reputationService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IVenueRepository venueRepository)
     {
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
@@ -39,6 +41,7 @@ public class ChatService : IChatService
         _taskService = taskService;
         _reputationService = reputationService;
         _notificationService = notificationService;
+        _venueRepository = venueRepository;
     }
 
     public async Task<List<ConversationDto>> GetConversationsAsync(Guid userId)
@@ -121,7 +124,54 @@ public class ChatService : IChatService
         await EnsureParticipantAsync(userId, conversationId);
 
         var messages = await _messageRepository.GetPageAsync(conversationId, beforeMessageId, limit);
-        return messages.Select(ToDto).ToList();
+
+        // Nạp thông tin quán cho các tin kiểu "venue" để render thẻ
+        var venueIds = messages.Where(m => m.VenueId.HasValue).Select(m => m.VenueId!.Value).Distinct().ToList();
+        var venues = new Dictionary<Guid, Venue>();
+        foreach (var vid in venueIds)
+        {
+            var v = await _venueRepository.GetByIdAsync(vid);
+            if (v is not null) venues[vid] = v;
+        }
+
+        return messages
+            .Select(m => ToDto(m, m.VenueId.HasValue && venues.TryGetValue(m.VenueId.Value, out var vv) ? vv : null))
+            .ToList();
+    }
+
+    public async Task<(MessageDto Message, Guid OtherUserId)> ShareVenueAsync(Guid userId, Guid conversationId, Guid venueId)
+    {
+        var (conversation, match) = await LoadAsync(userId, conversationId);
+        if (!match.IsActive)
+            throw new ForbiddenException("This match is no longer active.");
+
+        var venue = await _venueRepository.GetByIdAsync(venueId)
+            ?? throw new NotFoundException("Venue", venueId);
+
+        var now = DateTime.UtcNow;
+        var message = new Message
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = conversationId,
+            SenderId = userId,
+            Content = venue.Name,                 // preview cho danh sách hội thoại
+            Type = MessageType.Venue,
+            VenueId = venueId,
+            SentAt = now,
+        };
+        await _messageRepository.AddAsync(message);
+        conversation.LastMessageAt = now;
+        await _messageRepository.SaveChangesAsync();
+
+        var recipientId = OtherUserId(match, userId);
+        try
+        {
+            await _notificationService.NotifyAsync(recipientId, NotificationType.Message,
+                "Gợi ý địa điểm", $"đã chia sẻ địa điểm: {venue.Name}", conversationId.ToString());
+        }
+        catch { /* không để thông báo làm hỏng luồng chat */ }
+
+        return (ToDto(message, venue), recipientId);
     }
 
     public async Task<(MessageDto Message, Guid OtherUserId)> SendMessageAsync(Guid userId, Guid conversationId, string content)
@@ -209,13 +259,19 @@ public class ChatService : IChatService
     private static Guid OtherUserId(Match match, Guid userId) =>
         match.UserAId == userId ? match.UserBId : match.UserAId;
 
-    private static MessageDto ToDto(Message m) => new()
+    private static MessageDto ToDto(Message m, Venue? venue = null) => new()
     {
         Id = m.Id,
         ConversationId = m.ConversationId,
         SenderId = m.SenderId,
         Content = m.Content,
+        Type = m.Type,
         SentAt = m.SentAt,
         ReadAt = m.ReadAt,
+        VenueId = m.VenueId,
+        VenueName = venue?.Name,
+        VenueImageUrl = venue?.ImageUrl,
+        VenueAddress = venue?.Address,
+        VenueCategory = venue?.Category,
     };
 }

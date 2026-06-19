@@ -69,6 +69,12 @@ public class VenueService : IVenueService
             .ToList();
     }
 
+    public async Task<VenueDto> GetByIdAsync(Guid id)
+    {
+        var v = await _venueRepository.GetByIdAsync(id) ?? throw new NotFoundException("Venue", id);
+        return ToDto(v, null);
+    }
+
     public async Task<List<VenueDto>> ListAsync(bool includeInactive)
     {
         var venues = await _venueRepository.GetAllAsync(includeInactive);

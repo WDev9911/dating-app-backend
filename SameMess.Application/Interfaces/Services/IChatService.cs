@@ -14,6 +14,9 @@ public interface IChatService
     /// <summary>Gửi tin nhắn; trả về tin đã lưu và id của người nhận (để bắn realtime).</summary>
     Task<(MessageDto Message, Guid OtherUserId)> SendMessageAsync(Guid userId, Guid conversationId, string content);
 
+    /// <summary>Chia sẻ một địa điểm vào hội thoại dưới dạng "thẻ quán" (Type = venue).</summary>
+    Task<(MessageDto Message, Guid OtherUserId)> ShareVenueAsync(Guid userId, Guid conversationId, Guid venueId);
+
     Task MarkReadAsync(Guid userId, Guid conversationId);
 
     /// <summary>Id người còn lại trong conversation (đồng thời xác thực user là thành viên).</summary>

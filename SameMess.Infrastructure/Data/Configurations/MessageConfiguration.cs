@@ -19,6 +19,11 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .IsRequired()
             .HasMaxLength(2000);
 
+        builder.Property(m => m.Type)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue(Domain.Enums.MessageType.Text);
+
         builder.Property(m => m.SentAt)
             .HasDefaultValueSql("now() at time zone 'utc'");
 
