@@ -131,11 +131,16 @@ public class AuthController : ControllerBase
 
     private void SetRefreshTokenCookie(string token)
     {
+        // SameSite=None is required because the frontend (e.g. localhost:5173
+        // or the Vercel deployment) runs on a different origin than the API,
+        // making every request cross-site. Lax cookies are not attached to
+        // cross-site POST requests, so /api/auth/refresh would never see the
+        // cookie and the user would be logged out on every page reload.
         Response.Cookies.Append(RefreshTokenCookieName, token, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
             Expires = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays),
         });
     }
@@ -146,7 +151,7 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
         });
     }
