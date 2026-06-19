@@ -35,9 +35,23 @@ public class ConnectionController : ApiControllerBase
         return Ok(new { dismissed = true });
     }
 
-    /// <summary>Đề xuất gặp mặt trong một hội thoại.</summary>
+    /// <summary>Đề xuất gặp mặt (venue + thời gian). Yêu cầu cây ≥ Level 4. Thay thế đề xuất đang chờ (nếu có).</summary>
     [HttpPost("meetup/{conversationId:guid}/propose")]
     [ProducesResponseType(typeof(MeetupResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ProposeMeetup(Guid conversationId, [FromBody] ProposeMeetupDto dto)
         => Ok(await _connectionService.ProposeMeetupAsync(CurrentUserId, conversationId, dto));
+
+    /// <summary>Phản hồi đề xuất hẹn (chỉ người được đề xuất): accept / decline.</summary>
+    [HttpPost("meetup/{meetupId:guid}/respond")]
+    [ProducesResponseType(typeof(MeetupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RespondMeetup(Guid meetupId, [FromBody] RespondMeetupDto dto)
+        => Ok(await _connectionService.RespondMeetupAsync(CurrentUserId, meetupId, dto));
+
+    /// <summary>Danh sách đề xuất hẹn của một hội thoại (đang chờ + lịch sử).</summary>
+    [HttpGet("meetups/{conversationId:guid}")]
+    [ProducesResponseType(typeof(List<MeetupDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMeetups(Guid conversationId)
+        => Ok(await _connectionService.GetMeetupsAsync(CurrentUserId, conversationId));
 }

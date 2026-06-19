@@ -1,0 +1,11 @@
+-- Seed sự kiện cộng đồng mẫu (đã publish để user thấy). Admin có thể tạo thêm qua /api/admin/events.
+INSERT INTO events."Events"
+  ("Id","Title","Description","Location","ImageUrl","StartAt","EndAt","Capacity","XpReward","Badge","IsPublished","CreatedAt")
+VALUES
+  ('e1000000-0000-0000-0000-000000000001','Đêm nhạc Acoustic Sài Gòn','Giao lưu âm nhạc mộc cho người độc thân, kết bạn qua giai điệu.','The Acoustic Bar, Quận 1, TP.HCM','https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3','2026-07-05 19:00:00','2026-07-05 22:00:00',60,50,'Music Lover',true,now() at time zone 'utc'),
+  ('e1000000-0000-0000-0000-000000000002','Workshop Pha Chế Cà Phê','Cùng học pha chế và trò chuyện trong không gian ấm cúng.','Cộng Cà Phê, Quận 3, TP.HCM','https://images.unsplash.com/photo-1495474472287-4d71bcdd2085','2026-07-12 09:00:00','2026-07-12 11:30:00',24,40,'Barista',true,now() at time zone 'utc'),
+  ('e1000000-0000-0000-0000-000000000003','Chạy bộ buổi sáng & Healthy Date','Chạy bộ quanh hồ + ăn sáng lành mạnh, gặp gỡ người cùng lối sống.','Công viên Tao Đàn, Quận 1, TP.HCM','https://images.unsplash.com/photo-1452626038306-9aae5e071dd3','2026-07-19 06:00:00','2026-07-19 08:00:00',40,45,'Early Bird',true,now() at time zone 'utc'),
+  ('e1000000-0000-0000-0000-000000000004','Board Game Night','Tối chơi board game, phá băng tự nhiên, dễ kết bạn.','Ben Board Game Cafe, Quận 10, TP.HCM','https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5','2026-07-26 18:30:00','2026-07-26 21:30:00',32,40,'Game Master',true,now() at time zone 'utc'),
+  ('e1000000-0000-0000-0000-000000000005','Lớp Nấu Ăn Cặp Đôi','Cùng nấu một bữa tối — hoạt động lý tưởng cho buổi hẹn đầu.','Cooking Studio, Bình Thạnh, TP.HCM','https://images.unsplash.com/photo-1556910103-1c02745aae4d','2026-08-02 17:00:00','2026-08-02 20:00:00',20,60,'Chef Couple',true,now() at time zone 'utc'),
+  ('e1000000-0000-0000-0000-000000000006','Speed Dating Quận 7','Sự kiện hẹn hò nhanh: gặp nhiều người trong một buổi tối vui vẻ.','Crescent Mall, Quận 7, TP.HCM','https://images.unsplash.com/photo-1511795409834-ef04bbd61622','2026-08-09 19:00:00','2026-08-09 22:00:00',50,70,'Social Butterfly',true,now() at time zone 'utc')
+ON CONFLICT ("Id") DO NOTHING;

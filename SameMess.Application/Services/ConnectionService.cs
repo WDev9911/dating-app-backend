@@ -17,19 +17,25 @@ public class ConnectionService : IConnectionService
     private readonly IUserRepository _userRepository;
     private readonly INudgeDismissalRepository _nudgeRepository;
     private readonly IMeetupProposalRepository _meetupRepository;
+    private readonly IMatchPlantRepository _plantRepository;
+    private readonly IVenueRepository _venueRepository;
 
     public ConnectionService(
         IMatchRepository matchRepository,
         IConversationRepository conversationRepository,
         IUserRepository userRepository,
         INudgeDismissalRepository nudgeRepository,
-        IMeetupProposalRepository meetupRepository)
+        IMeetupProposalRepository meetupRepository,
+        IMatchPlantRepository plantRepository,
+        IVenueRepository venueRepository)
     {
         _matchRepository = matchRepository;
         _conversationRepository = conversationRepository;
         _userRepository = userRepository;
         _nudgeRepository = nudgeRepository;
         _meetupRepository = meetupRepository;
+        _plantRepository = plantRepository;
+        _venueRepository = venueRepository;
     }
 
     public async Task<List<ReminderDto>> GetRemindersAsync(Guid userId)
@@ -53,11 +59,8 @@ public class ConnectionService : IConnectionService
             {
                 reminders.Add(new ReminderDto
                 {
-                    Type = "say_hi",
-                    MatchId = m.Id,
-                    ConversationId = conv?.Id,
-                    PartnerId = partnerId,
-                    PartnerName = name,
+                    Type = "say_hi", MatchId = m.Id, ConversationId = conv?.Id,
+                    PartnerId = partnerId, PartnerName = name,
                     Message = $"Bạn đã match với {label} — gửi lời chào đi!",
                 });
             }
@@ -66,11 +69,8 @@ public class ConnectionService : IConnectionService
                 var days = Math.Max(1, (int)(now - conv.LastMessageAt.Value).TotalDays);
                 reminders.Add(new ReminderDto
                 {
-                    Type = "reconnect",
-                    MatchId = m.Id,
-                    ConversationId = conv.Id,
-                    PartnerId = partnerId,
-                    PartnerName = name,
+                    Type = "reconnect", MatchId = m.Id, ConversationId = conv.Id,
+                    PartnerId = partnerId, PartnerName = name,
                     Message = $"Cuộc trò chuyện với {label} đã lặng {days} ngày — nhắn lại nhé!",
                     LastActivityAt = conv.LastMessageAt,
                 });
@@ -111,18 +111,35 @@ public class ConnectionService : IConnectionService
 
         await _nudgeRepository.AddAsync(new NudgeDismissal
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            ConversationId = conversationId,
-            NudgeCode = nudgeId,
-            CreatedAt = DateTime.UtcNow,
+            Id = Guid.NewGuid(), UserId = userId, ConversationId = conversationId,
+            NudgeCode = nudgeId, CreatedAt = DateTime.UtcNow,
         });
         await _nudgeRepository.SaveChangesAsync();
     }
 
     public async Task<MeetupResultDto> ProposeMeetupAsync(Guid userId, Guid conversationId, ProposeMeetupDto dto)
     {
-        await EnsureMemberAsync(conversationId, userId);
+        var conv = await EnsureMemberAsync(conversationId, userId);
+
+        // Gate: cây của cặp phải đạt Level >= 4
+        var plant = await _plantRepository.GetByMatchIdAsync(conv.MatchId);
+        if (plant is null || plant.Level < VenueService.UnlockLevel)
+            throw new ForbiddenException($"Chăm cây tình yêu đạt Level {VenueService.UnlockLevel} để mở khóa hẹn hò.");
+
+        // Venue (nếu có) phải tồn tại
+        if (!string.IsNullOrWhiteSpace(dto.VenueId))
+        {
+            if (!Guid.TryParse(dto.VenueId, out var vid) || await _venueRepository.GetByIdAsync(vid) is null)
+                throw new BadRequestException("Địa điểm không hợp lệ.");
+        }
+
+        // Mỗi cặp chỉ 1 đề xuất đang chờ — đề xuất cũ (nếu có) bị thay thế
+        var pending = await _meetupRepository.GetPendingByConversationAsync(conversationId);
+        if (pending is not null)
+        {
+            pending.Status = MeetupStatus.Declined;
+            await _meetupRepository.UpdateAsync(pending);
+        }
 
         var proposal = new MeetupProposal
         {
@@ -139,6 +156,62 @@ public class ConnectionService : IConnectionService
         await _meetupRepository.SaveChangesAsync();
 
         return new MeetupResultDto { MeetupId = proposal.Id, Status = proposal.Status };
+    }
+
+    public async Task<MeetupDto> RespondMeetupAsync(Guid userId, Guid meetupId, RespondMeetupDto dto)
+    {
+        var proposal = await _meetupRepository.GetByIdAsync(meetupId)
+            ?? throw new NotFoundException("Meetup", meetupId);
+
+        await EnsureMemberAsync(proposal.ConversationId, userId);
+
+        if (proposal.ProposerId == userId)
+            throw new BadRequestException("Bạn là người đề xuất, không thể tự phản hồi. Đợi đối phương trả lời.");
+        if (proposal.Status != MeetupStatus.Proposed)
+            throw new BadRequestException("Đề xuất này đã được xử lý.");
+
+        proposal.Status = dto.Action?.ToLowerInvariant() switch
+        {
+            "accept" => MeetupStatus.Accepted,
+            "decline" => MeetupStatus.Declined,
+            _ => throw new BadRequestException("Action phải là 'accept' hoặc 'decline'."),
+        };
+        await _meetupRepository.UpdateAsync(proposal);
+        await _meetupRepository.SaveChangesAsync();
+
+        return await ToDtoAsync(proposal, userId);
+    }
+
+    public async Task<List<MeetupDto>> GetMeetupsAsync(Guid userId, Guid conversationId)
+    {
+        await EnsureMemberAsync(conversationId, userId);
+        var proposals = await _meetupRepository.GetByConversationAsync(conversationId);
+
+        var result = new List<MeetupDto>();
+        foreach (var p in proposals)
+            result.Add(await ToDtoAsync(p, userId));
+        return result;
+    }
+
+    private async Task<MeetupDto> ToDtoAsync(MeetupProposal p, Guid userId)
+    {
+        Venue? venue = null;
+        if (!string.IsNullOrWhiteSpace(p.VenueId) && Guid.TryParse(p.VenueId, out var vid))
+            venue = await _venueRepository.GetByIdAsync(vid);
+
+        return new MeetupDto
+        {
+            Id = p.Id,
+            ConversationId = p.ConversationId,
+            ProposerId = p.ProposerId,
+            IsMine = p.ProposerId == userId,
+            VenueId = venue?.Id,
+            VenueName = venue?.Name,
+            ProposedAt = p.ProposedAt,
+            Note = p.Note,
+            Status = p.Status,
+            CreatedAt = p.CreatedAt,
+        };
     }
 
     private static Guid Partner(Match m, Guid userId) => m.UserAId == userId ? m.UserBId : m.UserAId;

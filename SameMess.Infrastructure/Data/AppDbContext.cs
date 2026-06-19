@@ -44,6 +44,7 @@ public class AppDbContext : DbContext
     public DbSet<DailyQuestCompletion> DailyQuestCompletions { get; set; }
     public DbSet<NudgeDismissal> NudgeDismissals { get; set; }
     public DbSet<MeetupProposal> MeetupProposals { get; set; }
+    public DbSet<Venue> Venues { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -18,4 +18,13 @@ public class NudgeDismissalRepository : BaseRepository<NudgeDismissal>, INudgeDi
 public class MeetupProposalRepository : BaseRepository<MeetupProposal>, IMeetupProposalRepository
 {
     public MeetupProposalRepository(AppDbContext context) : base(context) { }
+
+    public async Task<MeetupProposal?> GetPendingByConversationAsync(Guid conversationId) =>
+        await _dbSet.FirstOrDefaultAsync(m =>
+            m.ConversationId == conversationId && m.Status == Domain.Enums.MeetupStatus.Proposed);
+
+    public async Task<List<MeetupProposal>> GetByConversationAsync(Guid conversationId) =>
+        await _dbSet.Where(m => m.ConversationId == conversationId)
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync();
 }

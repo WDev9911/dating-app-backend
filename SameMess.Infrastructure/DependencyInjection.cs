@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IDailyQuestCompletionRepository, DailyQuestCompletionRepository>();
         services.AddScoped<INudgeDismissalRepository, NudgeDismissalRepository>();
         services.AddScoped<IMeetupProposalRepository, MeetupProposalRepository>();
+        services.AddScoped<IVenueRepository, VenueRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 
