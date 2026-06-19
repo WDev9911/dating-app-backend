@@ -41,14 +41,19 @@ public static class GamificationConfig
 
     public static readonly IReadOnlyList<GameTask> Tasks = new List<GameTask>
     {
-        new("DAILY_CHECKIN",        GameTaskType.Daily,       GameAction.Login,           1,  PlantMaterial.Water,      1, "Mở app hôm nay"),
-        new("DAILY_SWIPE_10",       GameTaskType.Daily,       GameAction.Swipe,           10, PlantMaterial.Water,      1, "Quẹt 10 người"),
-        new("DAILY_MESSAGE",        GameTaskType.Daily,       GameAction.SendMessage,     1,  PlantMaterial.Sun,        1, "Gửi tin nhắn cho match"),
-        new("DAILY_WATER",          GameTaskType.Daily,       GameAction.Water,           1,  PlantMaterial.Water,      1, "Tưới cây 1 lần"),
-        new("WEEKLY_MATCH_3",       GameTaskType.Weekly,      GameAction.Match,           3,  PlantMaterial.Fertilizer, 1, "Match 3 người trong tuần"),
-        new("WEEKLY_WATER_5",       GameTaskType.Weekly,      GameAction.Water,           5,  PlantMaterial.Fertilizer, 1, "Tưới cây 5 lần trong tuần"),
-        new("ACH_COMPLETE_PROFILE", GameTaskType.Achievement, GameAction.CompleteProfile, 1,  PlantMaterial.Fertilizer, 2, "Hoàn thiện hồ sơ"),
-        new("ACH_FIRST_MATCH",      GameTaskType.Achievement, GameAction.Match,           1,  PlantMaterial.Sun,        2, "Có match đầu tiên"),
+        // Daily — dễ + thưởng nhiều nguyên liệu (để dễ chăm cây lên level / test)
+        new("DAILY_CHECKIN",        GameTaskType.Daily,       GameAction.Login,           1,  PlantMaterial.Fertilizer, 10, "Điểm danh hôm nay"),
+        new("DAILY_BONUS",          GameTaskType.Daily,       GameAction.Login,           1,  PlantMaterial.Sun,        10, "Thưởng đăng nhập"),
+        new("DAILY_SWIPE",          GameTaskType.Daily,       GameAction.Swipe,           3,  PlantMaterial.Water,      8,  "Quẹt 3 người"),
+        new("DAILY_MESSAGE",        GameTaskType.Daily,       GameAction.SendMessage,     1,  PlantMaterial.Sun,        5,  "Gửi tin nhắn cho match"),
+        new("DAILY_WATER",          GameTaskType.Daily,       GameAction.Water,           1,  PlantMaterial.Fertilizer, 5,  "Tưới cây 1 lần"),
+        new("DAILY_MATCH",          GameTaskType.Daily,       GameAction.Match,           1,  PlantMaterial.Fertilizer, 5,  "Có thêm 1 match"),
+        // Weekly
+        new("WEEKLY_MATCH_3",       GameTaskType.Weekly,      GameAction.Match,           3,  PlantMaterial.Fertilizer, 10, "Match 3 người trong tuần"),
+        new("WEEKLY_WATER_5",       GameTaskType.Weekly,      GameAction.Water,           5,  PlantMaterial.Fertilizer, 10, "Tưới cây 5 lần trong tuần"),
+        // Achievement (1 lần)
+        new("ACH_COMPLETE_PROFILE", GameTaskType.Achievement, GameAction.CompleteProfile, 1,  PlantMaterial.Fertilizer, 15, "Hoàn thiện hồ sơ"),
+        new("ACH_FIRST_MATCH",      GameTaskType.Achievement, GameAction.Match,           1,  PlantMaterial.Sun,        10, "Có match đầu tiên"),
     };
 
     /// <summary>Khóa kỳ theo loại nhiệm vụ: daily=ngày, weekly=tuần ISO, achievement="ALL" (không reset).</summary>
