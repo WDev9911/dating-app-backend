@@ -206,6 +206,41 @@ public class DatePassService : IDatePassService
         };
     }
 
+    // ── Admin ──
+    public async Task<List<VenueComboDto>> AdminListCombosAsync()
+    {
+        var combos = await _comboRepository.GetAllWithVenueAsync();
+        return combos.Select(ToComboDto).ToList();
+    }
+
+    public async Task<VenueComboDto> AdminCreateComboAsync(ComboPayloadDto dto)
+    {
+        var combo = new VenueCombo
+        {
+            Id = Guid.NewGuid(),
+            VenueId = dto.VenueId,
+            Title = dto.Title,
+            Description = dto.Description,
+            OriginalPriceVnd = dto.OriginalPriceVnd,
+            SalePriceVnd = dto.SalePriceVnd,
+            CommissionPercent = dto.CommissionPercent,
+            IsActive = dto.IsActive,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await _comboRepository.AddAsync(combo);
+        await _comboRepository.SaveChangesAsync();
+        var saved = await _comboRepository.GetWithVenueAsync(combo.Id);
+        return ToComboDto(saved!);
+    }
+
+    public async Task AdminDeleteComboAsync(Guid id)
+    {
+        var combo = await _comboRepository.GetByIdAsync(id)
+            ?? throw new NotFoundException("Combo", id);
+        await _comboRepository.DeleteAsync(combo);
+        await _comboRepository.SaveChangesAsync();
+    }
+
     // ── helpers ──
     private async Task<string> PartnerNameAsync(Guid userId, Guid matchId)
     {

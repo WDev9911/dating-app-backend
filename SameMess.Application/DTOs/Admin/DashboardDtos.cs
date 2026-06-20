@@ -11,7 +11,13 @@ public class DashboardStatsDto
     public int TotalMatches { get; set; }
     public int PendingReports { get; set; }
     public int ActiveSubscriptions { get; set; }
-    public long RevenueVnd { get; set; }
+    public long RevenueVnd { get; set; }              // doanh thu bán gói (subscription)
+
+    // Doanh thu combo hẹn hò (Date Pass)
+    public int VoucherOrders { get; set; }            // số voucher đã bán
+    public long VoucherGmvVnd { get; set; }           // tổng tiền combo đã bán
+    public long VoucherCommissionVnd { get; set; }    // hoa hồng app thu từ voucher
+    public long TotalRevenueVnd { get; set; }         // tổng = gói + hoa hồng voucher
 }
 
 public class ChartPointDto

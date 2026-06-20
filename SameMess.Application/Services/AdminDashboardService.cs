@@ -1,5 +1,6 @@
 using SameMess.Application.DTOs.Admin;
 using SameMess.Application.Interfaces.Services;
+using SameMess.Domain.Enums;
 using SameMess.Domain.Interfaces.Repositories;
 
 namespace SameMess.Application.Services;
@@ -7,12 +8,24 @@ namespace SameMess.Application.Services;
 public class AdminDashboardService : IAdminDashboardService
 {
     private readonly IAdminStatsRepository _statsRepository;
+    private readonly IDatePassOrderRepository _datePassRepository;
 
-    public AdminDashboardService(IAdminStatsRepository statsRepository) => _statsRepository = statsRepository;
+    public AdminDashboardService(IAdminStatsRepository statsRepository, IDatePassOrderRepository datePassRepository)
+    {
+        _statsRepository = statsRepository;
+        _datePassRepository = datePassRepository;
+    }
 
     public async Task<DashboardStatsDto> GetDashboardAsync()
     {
         var s = await _statsRepository.GetDashboardAsync();
+
+        // Doanh thu combo (Date Pass) trên đơn đã thanh toán/đã dùng
+        var orders = await _datePassRepository.GetAllOrdersAsync();
+        var paid = orders.Where(o => o.Status == DatePassStatus.Paid || o.Status == DatePassStatus.Redeemed).ToList();
+        long voucherGmv = paid.Sum(o => (long)o.AmountVnd);
+        long voucherCommission = paid.Sum(o => (long)o.CommissionVnd);
+
         return new DashboardStatsDto
         {
             TotalUsers = s.TotalUsers,
@@ -25,6 +38,10 @@ public class AdminDashboardService : IAdminDashboardService
             PendingReports = s.PendingReports,
             ActiveSubscriptions = s.ActiveSubscriptions,
             RevenueVnd = s.RevenueVnd,
+            VoucherOrders = paid.Count,
+            VoucherGmvVnd = voucherGmv,
+            VoucherCommissionVnd = voucherCommission,
+            TotalRevenueVnd = s.RevenueVnd + voucherCommission,
         };
     }
 

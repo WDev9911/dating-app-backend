@@ -18,4 +18,10 @@ public class VenueComboRepository : BaseRepository<VenueCombo>, IVenueComboRepos
 
     public async Task<VenueCombo?> GetWithVenueAsync(Guid id) =>
         await _dbSet.Include(c => c.Venue).FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<List<VenueCombo>> GetAllWithVenueAsync() =>
+        await _dbSet.AsNoTracking()
+            .Include(c => c.Venue)
+            .OrderBy(c => c.Venue.Name).ThenBy(c => c.SalePriceVnd)
+            .ToListAsync();
 }

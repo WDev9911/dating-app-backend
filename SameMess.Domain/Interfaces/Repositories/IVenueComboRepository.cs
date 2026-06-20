@@ -9,4 +9,7 @@ public interface IVenueComboRepository : IBaseRepository<VenueCombo>
 
     /// <summary>Combo theo id (kèm Venue).</summary>
     Task<VenueCombo?> GetWithVenueAsync(Guid id);
+
+    /// <summary>Tất cả combo (kể cả ẩn) — cho admin.</summary>
+    Task<List<VenueCombo>> GetAllWithVenueAsync();
 }

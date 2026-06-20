@@ -17,6 +17,18 @@ public class VenueComboDto
     public int CommissionPercent { get; set; }
 }
 
+/// <summary>Admin tạo/sửa combo cho một quán.</summary>
+public class ComboPayloadDto
+{
+    public Guid VenueId { get; set; }
+    public string Title { get; set; } = null!;
+    public string? Description { get; set; }
+    public int OriginalPriceVnd { get; set; }
+    public int SalePriceVnd { get; set; }
+    public int CommissionPercent { get; set; } = 15;
+    public bool IsActive { get; set; } = true;
+}
+
 /// <summary>Match đủ điều kiện đặt combo (cây ≥ Level 4).</summary>
 public class EligibleMatchDto
 {

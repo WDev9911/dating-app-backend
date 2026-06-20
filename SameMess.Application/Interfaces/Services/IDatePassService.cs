@@ -11,4 +11,9 @@ public interface IDatePassService
     Task<DatePassOrderDto> RedeemAsync(Guid userId, Guid orderId);
     Task<List<DatePassOrderDto>> GetMyOrdersAsync(Guid userId);
     Task<DatePassRevenueDto> GetRevenueAsync();
+
+    // Admin
+    Task<List<VenueComboDto>> AdminListCombosAsync();
+    Task<VenueComboDto> AdminCreateComboAsync(ComboPayloadDto dto);
+    Task AdminDeleteComboAsync(Guid id);
 }
