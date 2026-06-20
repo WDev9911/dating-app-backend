@@ -9,26 +9,30 @@ namespace SameMess.API.Controllers;
 public class PaymentsController : ApiControllerBase
 {
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IConfiguration _config;
 
-    public PaymentsController(ISubscriptionService subscriptionService)
-        => _subscriptionService = subscriptionService;
+    public PaymentsController(ISubscriptionService subscriptionService, IConfiguration config)
+    {
+        _subscriptionService = subscriptionService;
+        _config = config;
+    }
 
-    /// <summary>VNPay redirect browser về đây sau thanh toán. CHỈ hiển thị kết quả (không kích hoạt).</summary>
+    /// <summary>
+    /// VNPay redirect browser về đây sau thanh toán. Xác minh + kích hoạt gói (nếu thành công),
+    /// rồi CHUYỂN HƯỚNG người dùng về web app (trang Premium) kèm trạng thái.
+    /// </summary>
     [HttpGet("return")]
     public async Task<IActionResult> Return()
     {
         var query = QueryToDict();
         var result = await _subscriptionService.HandleReturnAsync(query);
-        return Ok(new
-        {
-            success = result.IsSuccess,
-            signatureValid = result.SignatureValid,
-            responseCode = result.ResponseCode,
-            txnRef = result.TxnRef,
-            message = result.IsSuccess
-                ? "Thanh toán thành công. Gói đã được kích hoạt."
-                : "Thanh toán không thành công hoặc bị hủy.",
-        });
+
+        var baseUrl = _config["VNPay:FrontendReturnUrl"]?.TrimEnd('/')
+                      ?? "http://localhost:5173/premium";
+        var status = result.IsSuccess ? "success" : "failed";
+        var sep = baseUrl.Contains('?') ? "&" : "?";
+        var redirectUrl = $"{baseUrl}{sep}payment={status}";
+        return Redirect(redirectUrl);
     }
 
     /// <summary>IPN VNPay (server→server) — xác nhận thẩm quyền: đánh dấu Paid + kích hoạt gói.</summary>
