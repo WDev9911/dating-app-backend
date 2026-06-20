@@ -164,6 +164,10 @@ public class SwipeService : ISwipeService
             if (!byId.TryGetValue(swipe.SwiperId, out var user) || user.Profile is null)
                 continue;
 
+            var photos = _mapper.Map<List<PhotoDto>>(user.Photos.OrderBy(p => p.OrderIndex));
+            if (!revealPhotos)
+                foreach (var ph in photos) ph.Url = BlurUrl(ph.Url); // chỉ phát ảnh đã làm mờ cho Free/Plus
+
             result.Add(new LikedMeProfileDto
             {
                 UserId = user.Id,
@@ -173,13 +177,26 @@ public class SwipeService : ISwipeService
                 Bio = user.Profile.Bio,
                 IsSuperLike = swipe.Action == SwipeAction.SuperLike,
                 PhotosLocked = !revealPhotos,
-                Photos = revealPhotos
-                    ? _mapper.Map<List<PhotoDto>>(user.Photos.OrderBy(p => p.OrderIndex))
-                    : new List<PhotoDto>(), // KHÔNG gửi URL gốc cho Free
+                Photos = photos,
             });
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Trả URL ảnh đã làm mờ cho người chưa mở khóa (Gold). Với ảnh Cloudinary, chèn transform
+    /// <c>e_blur</c> để ảnh phát ra đã mờ sẵn (không thể khôi phục bản gốc). Ảnh không phải
+    /// Cloudinary thì giữ nguyên — frontend sẽ làm mờ bằng CSS dựa trên cờ <c>PhotosLocked</c>.
+    /// </summary>
+    private static string BlurUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return url;
+        const string marker = "/upload/";
+        var idx = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return url;
+        var insertAt = idx + marker.Length;
+        return string.Concat(url.AsSpan(0, insertAt), "e_blur:2000,q_30/", url.AsSpan(insertAt));
     }
 
     public async Task<UndoResultDto> UndoLastSwipeAsync(Guid userId)
