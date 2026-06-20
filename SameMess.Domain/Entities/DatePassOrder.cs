@@ -21,7 +21,8 @@ public class DatePassOrder
     public int AmountVnd { get; set; }       // số tiền đã trả (SalePrice)
     public int CommissionVnd { get; set; }   // hoa hồng app thu
     public string VoucherCode { get; set; } = null!;
-    public string? Email { get; set; }       // email nhận voucher
+    public string? Email { get; set; }        // email người mua nhận voucher
+    public string? PartnerEmail { get; set; } // email người kia (cùng mã voucher)
 
     public string Status { get; set; } = DatePassStatus.Pending;
     public DateTime CreatedAt { get; set; }

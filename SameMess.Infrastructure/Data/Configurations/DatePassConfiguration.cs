@@ -40,6 +40,7 @@ public class DatePassOrderConfiguration : IEntityTypeConfiguration<DatePassOrder
         builder.Property(o => o.ComboTitle).IsRequired().HasMaxLength(150);
         builder.Property(o => o.VoucherCode).IsRequired().HasMaxLength(40);
         builder.Property(o => o.Email).HasMaxLength(256);
+        builder.Property(o => o.PartnerEmail).HasMaxLength(256);
         builder.Property(o => o.Status).IsRequired().HasMaxLength(20);
         builder.Property(o => o.CreatedAt).HasDefaultValueSql("now() at time zone 'utc'");
 

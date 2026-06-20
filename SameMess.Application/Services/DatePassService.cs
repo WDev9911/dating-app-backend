@@ -85,6 +85,11 @@ public class DatePassService : IDatePassService
             ? (await _userRepository.GetByIdAsync(userId))?.Email
             : dto.Email.Trim();
 
+        // Email người kia: tự lấy email đăng ký của họ, hoặc do người mua nhập hộ
+        var partnerEmail = string.IsNullOrWhiteSpace(dto.PartnerEmail)
+            ? (await _userRepository.GetByIdAsync(match.UserId))?.Email
+            : dto.PartnerEmail.Trim();
+
         var now = DateTime.UtcNow;
         var order = new DatePassOrder
         {
@@ -99,6 +104,7 @@ public class DatePassService : IDatePassService
             CommissionVnd = combo.SalePriceVnd * combo.CommissionPercent / 100,
             VoucherCode = GenerateVoucherCode(),
             Email = email,
+            PartnerEmail = partnerEmail,
             Status = DatePassStatus.Pending,
             CreatedAt = now,
             ExpiresAt = now.AddDays(VoucherValidDays),
@@ -123,21 +129,23 @@ public class DatePassService : IDatePassService
         await _orderRepository.UpdateAsync(order);
         await _orderRepository.SaveChangesAsync();
 
-        // Gửi email voucher (fail-safe: lỗi email không làm hỏng thanh toán)
-        if (!string.IsNullOrWhiteSpace(order.Email))
+        // Gửi email voucher tới CẢ HAI (cùng 1 mã) — fail-safe: lỗi email không làm hỏng thanh toán
+        var model = new VoucherEmailModel
         {
-            try
-            {
-                await _emailService.SendVoucherEmailAsync(order.Email, new VoucherEmailModel
-                {
-                    VenueName = order.VenueName,
-                    ComboTitle = order.ComboTitle,
-                    AmountVnd = order.AmountVnd,
-                    VoucherCode = order.VoucherCode,
-                    QrUrl = QrUrl(order.VoucherCode),
-                    ExpiresAt = order.ExpiresAt,
-                });
-            }
+            VenueName = order.VenueName,
+            ComboTitle = order.ComboTitle,
+            AmountVnd = order.AmountVnd,
+            VoucherCode = order.VoucherCode,
+            QrUrl = QrUrl(order.VoucherCode),
+            ExpiresAt = order.ExpiresAt,
+        };
+        var recipients = new[] { order.Email, order.PartnerEmail }
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .Select(e => e!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        foreach (var to in recipients)
+        {
+            try { await _emailService.SendVoucherEmailAsync(to, model); }
             catch { /* bỏ qua lỗi gửi email — voucher vẫn hiện trong app */ }
         }
 

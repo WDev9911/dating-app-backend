@@ -30,7 +30,8 @@ public class CreateDatePassOrderDto
 {
     public Guid ComboId { get; set; }
     public Guid MatchId { get; set; }
-    public string? Email { get; set; }   // để trống = dùng email tài khoản
+    public string? Email { get; set; }         // để trống = email tài khoản người mua
+    public string? PartnerEmail { get; set; }  // để trống = email đăng ký của người kia
 }
 
 public class DatePassOrderDto
