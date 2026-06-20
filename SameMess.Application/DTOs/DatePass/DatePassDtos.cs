@@ -30,8 +30,7 @@ public class CreateDatePassOrderDto
 {
     public Guid ComboId { get; set; }
     public Guid MatchId { get; set; }
-    public string? Email { get; set; }         // để trống = email tài khoản người mua
-    public string? PartnerEmail { get; set; }  // để trống = email đăng ký của người kia
+    // Voucher luôn gửi tới email đăng ký của cả hai người — không nhận email từ client (chống lạm dụng).
 }
 
 public class DatePassOrderDto

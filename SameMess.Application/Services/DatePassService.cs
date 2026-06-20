@@ -18,6 +18,7 @@ public class DatePassService : IDatePassService
     private readonly IMatchPlantRepository _plantRepository;
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
 
     public DatePassService(
         IVenueComboRepository comboRepository,
@@ -25,7 +26,8 @@ public class DatePassService : IDatePassService
         IMatchService matchService,
         IMatchPlantRepository plantRepository,
         IUserRepository userRepository,
-        IEmailService emailService)
+        IEmailService emailService,
+        INotificationService notificationService)
     {
         _comboRepository = comboRepository;
         _orderRepository = orderRepository;
@@ -33,6 +35,7 @@ public class DatePassService : IDatePassService
         _plantRepository = plantRepository;
         _userRepository = userRepository;
         _emailService = emailService;
+        _notificationService = notificationService;
     }
 
     public async Task<List<VenueComboDto>> GetCombosAsync()
@@ -81,14 +84,10 @@ public class DatePassService : IDatePassService
         if (existing is not null)
             throw new ConflictException("Cặp của bạn đã có voucher cho combo này. Hãy dùng hoặc đợi hết hạn trước khi mua lại.");
 
-        var email = string.IsNullOrWhiteSpace(dto.Email)
-            ? (await _userRepository.GetByIdAsync(userId))?.Email
-            : dto.Email.Trim();
-
-        // Email người kia: tự lấy email đăng ký của họ, hoặc do người mua nhập hộ
-        var partnerEmail = string.IsNullOrWhiteSpace(dto.PartnerEmail)
-            ? (await _userRepository.GetByIdAsync(match.UserId))?.Email
-            : dto.PartnerEmail.Trim();
+        // CHỐNG LẠM DỤNG: voucher luôn gửi tới EMAIL ĐĂNG KÝ của CẢ HAI người trong cặp
+        // (không cho nhập tay) → chắc chắn đến đúng 2 người match.
+        var email = (await _userRepository.GetByIdAsync(userId))?.Email;
+        var partnerEmail = (await _userRepository.GetByIdAsync(match.UserId))?.Email;
 
         var now = DateTime.UtcNow;
         var order = new DatePassOrder
@@ -149,8 +148,22 @@ public class DatePassService : IDatePassService
             catch { /* bỏ qua lỗi gửi email — voucher vẫn hiện trong app */ }
         }
 
-        var name = await PartnerNameAsync(userId, order.MatchId);
-        return ToOrderDto(order, userId, name);
+        // Báo cho đối phương biết (minh bạch + chống lạm dụng âm thầm) — fail-safe
+        var matches = await _matchService.GetMyMatchesAsync(userId);
+        var partner = matches.FirstOrDefault(m => m.MatchId == order.MatchId);
+        if (partner is not null)
+        {
+            try
+            {
+                await _notificationService.NotifyAsync(partner.UserId, NotificationType.Match,
+                    "Combo hẹn hò mới 🎟️",
+                    $"Người ấy vừa đặt \"{order.ComboTitle}\" tại {order.VenueName} cho buổi hẹn của hai bạn. Kiểm tra email để nhận voucher!",
+                    order.Id.ToString());
+            }
+            catch { /* không để thông báo làm hỏng luồng */ }
+        }
+
+        return ToOrderDto(order, userId, partner?.DisplayName ?? "Người ấy");
     }
 
     public async Task<DatePassOrderDto> RedeemAsync(Guid userId, Guid orderId)
