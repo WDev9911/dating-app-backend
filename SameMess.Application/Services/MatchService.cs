@@ -1,6 +1,7 @@
 using SameMess.Application.Common;
 using SameMess.Application.DTOs.Matching;
 using SameMess.Application.Interfaces.Services;
+using SameMess.Domain.Entities;
 using SameMess.Domain.Exceptions;
 using SameMess.Domain.Interfaces.Repositories;
 
@@ -28,7 +29,7 @@ public class MatchService : IMatchService
             .Select(m => m.UserAId == userId ? m.UserBId : m.UserAId)
             .ToList();
 
-        var others = await _userRepository.GetWithProfileByIdsAsync(otherIds);
+        var others = await _userRepository.GetWithProfileAndPhotosByIdsAsync(otherIds);
         var byId = others.ToDictionary(u => u.Id);
 
         var result = new List<MatchDto>();
@@ -42,13 +43,22 @@ public class MatchService : IMatchService
                 MatchId = match.Id,
                 UserId = otherId,
                 DisplayName = other?.Profile?.DisplayName ?? string.Empty,
-                AvatarUrl = other?.Profile?.AvatarUrl,
+                AvatarUrl = AvatarOf(other),
                 Age = AgeCalculator.FromDateOfBirth(other?.Profile?.DateOfBirth),
                 MatchedAt = match.CreatedAt,
             });
         }
 
         return result;
+    }
+
+    /// <summary>Avatar = AvatarUrl của hồ sơ; nếu trống thì lấy ảnh chính (hoặc ảnh đầu).</summary>
+    internal static string? AvatarOf(User? user)
+    {
+        if (!string.IsNullOrEmpty(user?.Profile?.AvatarUrl)) return user.Profile.AvatarUrl;
+        var photos = user?.Photos;
+        if (photos is null || photos.Count == 0) return null;
+        return (photos.FirstOrDefault(p => p.IsPrimary) ?? photos.First()).Url;
     }
 
     public async Task UnmatchAsync(Guid userId, Guid matchId)

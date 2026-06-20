@@ -54,7 +54,7 @@ public class ChatService : IChatService
             .Select(c => OtherUserId(c.Match, userId))
             .ToList();
 
-        var others = await _userRepository.GetWithProfileByIdsAsync(otherIds);
+        var others = await _userRepository.GetWithProfileAndPhotosByIdsAsync(otherIds);
         var byId = others.ToDictionary(u => u.Id);
 
         var result = new List<ConversationDto>();
@@ -72,7 +72,7 @@ public class ChatService : IChatService
                 MatchId = conv.MatchId,
                 OtherUserId = otherId,
                 OtherDisplayName = other?.Profile?.DisplayName ?? string.Empty,
-                OtherAvatarUrl = other?.Profile?.AvatarUrl,
+                OtherAvatarUrl = MatchService.AvatarOf(other),
                 LastMessageText = lastMessage?.Content,
                 LastMessageAt = conv.LastMessageAt,
                 UnreadCount = unread,
@@ -104,7 +104,7 @@ public class ChatService : IChatService
         }
 
         var otherId = OtherUserId(match, userId);
-        var other = (await _userRepository.GetWithProfileByIdsAsync(new[] { otherId })).FirstOrDefault();
+        var other = (await _userRepository.GetWithProfileAndPhotosByIdsAsync(new[] { otherId })).FirstOrDefault();
 
         return new ConversationDto
         {
@@ -112,7 +112,7 @@ public class ChatService : IChatService
             MatchId = matchId,
             OtherUserId = otherId,
             OtherDisplayName = other?.Profile?.DisplayName ?? string.Empty,
-            OtherAvatarUrl = other?.Profile?.AvatarUrl,
+            OtherAvatarUrl = MatchService.AvatarOf(other),
             LastMessageText = null,
             LastMessageAt = conversation.LastMessageAt,
             UnreadCount = 0,
