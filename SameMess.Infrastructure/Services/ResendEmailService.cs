@@ -27,7 +27,19 @@ public class ResendEmailService : IEmailService
     public async Task SendOtpEmailAsync(string toEmail, string otpCode, string purpose)
     {
         var (subject, html) = OtpEmailTemplate.Build(otpCode, purpose);
+        await SendAsync(toEmail, subject, html);
+        _logger.LogInformation("OTP email sent via Resend to {Email} for purpose {Purpose}", toEmail, purpose);
+    }
 
+    public async Task SendVoucherEmailAsync(string toEmail, VoucherEmailModel model)
+    {
+        var (subject, html) = VoucherEmailTemplate.Build(model);
+        await SendAsync(toEmail, subject, html);
+        _logger.LogInformation("Voucher email sent via Resend to {Email} (voucher {Code})", toEmail, model.VoucherCode);
+    }
+
+    private async Task SendAsync(string toEmail, string subject, string html)
+    {
         var payload = new
         {
             from = $"{_settings.FromName} <{_settings.FromEmail}>",
@@ -48,7 +60,5 @@ public class ResendEmailService : IEmailService
             var detail = await response.Content.ReadAsStringAsync();
             throw new InvalidOperationException($"Resend API trả về {(int)response.StatusCode}: {detail}");
         }
-
-        _logger.LogInformation("OTP email sent via Resend to {Email} for purpose {Purpose}", toEmail, purpose);
     }
 }

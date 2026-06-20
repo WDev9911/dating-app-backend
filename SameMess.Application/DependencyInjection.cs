@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IProfileVerificationService, ProfileVerificationService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IDatePassService, DatePassService>();
         return services;
     }
 }

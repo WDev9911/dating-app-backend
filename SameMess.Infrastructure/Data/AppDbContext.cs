@@ -45,6 +45,8 @@ public class AppDbContext : DbContext
     public DbSet<NudgeDismissal> NudgeDismissals { get; set; }
     public DbSet<MeetupProposal> MeetupProposals { get; set; }
     public DbSet<Venue> Venues { get; set; }
+    public DbSet<VenueCombo> VenueCombos { get; set; }
+    public DbSet<DatePassOrder> DatePassOrders { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

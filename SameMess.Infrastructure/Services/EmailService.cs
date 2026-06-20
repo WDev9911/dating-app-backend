@@ -21,12 +21,24 @@ public class EmailService : IEmailService
     public async Task SendOtpEmailAsync(string toEmail, string otpCode, string purpose)
     {
         var (subject, body) = OtpEmailTemplate.Build(otpCode, purpose);
+        await SendAsync(toEmail, subject, body);
+        _logger.LogInformation("OTP email sent to {Email} for purpose {Purpose}", toEmail, purpose);
+    }
 
+    public async Task SendVoucherEmailAsync(string toEmail, VoucherEmailModel model)
+    {
+        var (subject, body) = VoucherEmailTemplate.Build(model);
+        await SendAsync(toEmail, subject, body);
+        _logger.LogInformation("Voucher email sent to {Email} (voucher {Code})", toEmail, model.VoucherCode);
+    }
+
+    private async Task SendAsync(string toEmail, string subject, string body)
+    {
         using var client = new SmtpClient(_smtp.Host, _smtp.Port)
         {
             EnableSsl = true,
             Credentials = new NetworkCredential(_smtp.Username, _smtp.Password),
-            Timeout = 15000, // 15s — tránh treo lâu nếu SMTP không phản hồi (vd cổng bị chặn)
+            Timeout = 15000,
         };
 
         var message = new MailMessage
@@ -39,6 +51,5 @@ public class EmailService : IEmailService
         message.To.Add(toEmail);
 
         await client.SendMailAsync(message);
-        _logger.LogInformation("OTP email sent to {Email} for purpose {Purpose}", toEmail, purpose);
     }
 }
