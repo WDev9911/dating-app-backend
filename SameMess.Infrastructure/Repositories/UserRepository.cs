@@ -53,4 +53,39 @@ public class UserRepository : BaseRepository<User>, IUserRepository
             .Where(u => u.Profile != null
                         && u.Profile.VerificationStatus == Domain.Enums.VerificationStatus.Pending)
             .ToListAsync();
+
+    /// <summary>
+    /// Xoá sạch mọi dữ liệu của user. Các bảng RESTRICT (Swipe/Match/Block/Report/Conversation/
+    /// Message-by-sender) + bảng không có FK (MeetupProposal/NudgeDismissal/UserXp/DailyQuest) được
+    /// xoá thủ công trước; phần còn lại xoá theo CASCADE khi xoá hàng auth."Users".
+    /// </summary>
+    public async Task PurgeAsync(Guid userId)
+    {
+        const string matchSub = "(SELECT \"Id\" FROM matching.\"Matches\" WHERE \"UserAId\" = {0} OR \"UserBId\" = {0})";
+        var convSub = $"(SELECT \"Id\" FROM chat.\"Conversations\" WHERE \"MatchId\" IN {matchSub})";
+
+        // Xoá lần lượt (mỗi câu 1 lệnh vì Npgsql không cho nhiều statement có tham số),
+        // trong cùng 1 transaction để an toàn. Phần còn lại tự xoá theo ON DELETE CASCADE.
+        var statements = new[]
+        {
+            $"DELETE FROM chat.\"MeetupProposals\" WHERE \"ProposerId\" = {{0}} OR \"ConversationId\" IN {convSub}",
+            $"DELETE FROM chat.\"NudgeDismissals\" WHERE \"UserId\" = {{0}} OR \"ConversationId\" IN {convSub}",
+            $"DELETE FROM chat.\"Messages\" WHERE \"SenderId\" = {{0}} OR \"ConversationId\" IN {convSub}",
+            $"DELETE FROM chat.\"Conversations\" WHERE \"MatchId\" IN {matchSub}",
+            $"DELETE FROM billing.\"DatePassOrders\" WHERE \"BuyerId\" = {{0}} OR \"MatchId\" IN {matchSub}",
+            $"DELETE FROM gamification.\"MatchPlants\" WHERE \"MatchId\" IN {matchSub}",
+            "DELETE FROM matching.\"Matches\" WHERE \"UserAId\" = {0} OR \"UserBId\" = {0}",
+            "DELETE FROM matching.\"Swipes\" WHERE \"SwiperId\" = {0} OR \"TargetUserId\" = {0}",
+            "DELETE FROM safety.\"Blocks\" WHERE \"BlockerId\" = {0} OR \"BlockedId\" = {0}",
+            "DELETE FROM safety.\"Reports\" WHERE \"ReporterId\" = {0} OR \"ReportedId\" = {0}",
+            "DELETE FROM gamification.\"UserXp\" WHERE \"UserId\" = {0}",
+            "DELETE FROM gamification.\"DailyQuestCompletions\" WHERE \"UserId\" = {0}",
+            "DELETE FROM auth.\"Users\" WHERE \"Id\" = {0}",
+        };
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        foreach (var s in statements)
+            await _context.Database.ExecuteSqlRawAsync(s, userId);
+        await tx.CommitAsync();
+    }
 }

@@ -129,6 +129,22 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Xoá vĩnh viễn tài khoản hiện tại + toàn bộ dữ liệu liên quan (banned tự xoá khi thoát).</summary>
+    [Authorize]
+    [HttpDelete("account")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var sub = User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(sub, out var userId))
+            return Problem(title: "Unauthorized", detail: "Invalid token claims.",
+                statusCode: StatusCodes.Status401Unauthorized);
+
+        await _authService.DeleteAccountAsync(userId);
+        ClearRefreshTokenCookie();
+        return Ok(new { message = "Account deleted." });
+    }
+
     private void SetRefreshTokenCookie(string token)
     {
         // SameSite=None is required because the frontend (e.g. localhost:5173

@@ -131,13 +131,11 @@ public class AuthService : IAuthService
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             throw new UnauthorizedException("Invalid email or password.");
 
-        if (user.Status == UserStatus.Banned)
-            throw new ForbiddenException("Your account has been banned.");
-
         if (user.Status == UserStatus.PendingVerification)
             throw new ForbiddenException("Please verify your email before logging in.");
 
-        if (user.Status != UserStatus.Active)
+        // User bị ban VẪN cho đăng nhập 1 lần cuối để thấy thông báo & tự xoá tài khoản.
+        if (user.Status != UserStatus.Active && user.Status != UserStatus.Banned)
             throw new ForbiddenException("Your account is inactive.");
 
         return await BuildAuthTokenResultAsync(user, ipAddress, userAgent);
@@ -226,4 +224,11 @@ public class AuthService : IAuthService
 
     private static string GenerateSecureOtp() =>
         RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+
+    public async Task DeleteAccountAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User", userId);
+        await _userRepository.PurgeAsync(user.Id);
+    }
 }

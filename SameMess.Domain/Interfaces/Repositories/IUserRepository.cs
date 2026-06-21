@@ -15,4 +15,7 @@ public interface IUserRepository : IBaseRepository<User>
 
     /// <summary>Hồ sơ đang chờ admin duyệt xác minh khuôn mặt (kèm Profile + Photos).</summary>
     Task<List<User>> GetPendingFaceVerificationsAsync();
+
+    /// <summary>Xoá VĨNH VIỄN toàn bộ dữ liệu liên quan tới user (mọi schema) rồi xoá user.</summary>
+    Task PurgeAsync(Guid userId);
 }

@@ -10,4 +10,7 @@ public interface IAuthService
     Task<AuthTokenResult> RefreshTokenAsync(string plainRefreshToken, string? ipAddress, string? userAgent);
     Task RevokeRefreshTokenAsync(string plainRefreshToken);
     Task<UserInfoDto> GetCurrentUserAsync(Guid userId);
+
+    /// <summary>Xoá vĩnh viễn tài khoản hiện tại + toàn bộ dữ liệu liên quan.</summary>
+    Task DeleteAccountAsync(Guid userId);
 }
