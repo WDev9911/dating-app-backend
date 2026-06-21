@@ -13,4 +13,8 @@ public class UserTaskProgress
     public int Progress { get; set; }
     public bool Completed { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    /// <summary>Đã nhận thưởng chưa. Hoàn thành nhiệm vụ chỉ mở nút "Nhận"; user tự bấm để cộng nguyên liệu.</summary>
+    public bool Claimed { get; set; }
+    public DateTime? ClaimedAt { get; set; }
 }

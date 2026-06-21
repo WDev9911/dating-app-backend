@@ -8,6 +8,7 @@ public class TaskDto
     public int Target { get; set; }
     public int Progress { get; set; }
     public bool Completed { get; set; }
+    public bool Claimed { get; set; }
     public string RewardMaterial { get; set; } = null!;
     public int RewardQty { get; set; }
 }

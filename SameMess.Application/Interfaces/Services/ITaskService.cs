@@ -14,4 +14,7 @@ public interface ITaskService
     Task<List<TaskDto>> GetTasksAsync(Guid userId);
 
     Task<List<InventoryItemDto>> GetInventoryAsync(Guid userId);
+
+    /// <summary>Nhận thưởng cho một nhiệm vụ đã hoàn thành (cộng nguyên liệu, đánh dấu Claimed).</summary>
+    Task ClaimAsync(Guid userId, string taskCode);
 }

@@ -3,6 +3,7 @@ using SameMess.Application.Gamification;
 using SameMess.Application.Interfaces.Services;
 using SameMess.Domain.Entities;
 using SameMess.Domain.Enums;
+using SameMess.Domain.Exceptions;
 using SameMess.Domain.Interfaces.Repositories;
 
 namespace SameMess.Application.Services;
@@ -59,7 +60,7 @@ public class TaskService : ITaskService
                 progress.Progress = task.Target;
                 progress.Completed = true;
                 progress.CompletedAt = DateTime.UtcNow;
-                await GrantMaterialAsync(userId, task.RewardMaterial, task.RewardQty);
+                // Không tự cộng thưởng nữa — user phải tự bấm "Nhận" (ClaimAsync).
             }
         }
 
@@ -93,10 +94,31 @@ public class TaskService : ITaskService
                 Target = t.Target,
                 Progress = p?.Progress ?? 0,
                 Completed = p?.Completed ?? false,
+                Claimed = p?.Claimed ?? false,
                 RewardMaterial = t.RewardMaterial,
                 RewardQty = t.RewardQty,
             };
         }).ToList();
+    }
+
+    public async Task ClaimAsync(Guid userId, string taskCode)
+    {
+        var task = GamificationConfig.Tasks.FirstOrDefault(t => t.Code == taskCode)
+            ?? throw new BadRequestException("Không tìm thấy nhiệm vụ.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var periodKey = GamificationConfig.PeriodKey(task.Type, today);
+        var progress = await _progressRepository.GetAsync(userId, taskCode, periodKey);
+
+        if (progress is null || !progress.Completed)
+            throw new BadRequestException("Nhiệm vụ chưa hoàn thành.");
+        if (progress.Claimed)
+            throw new BadRequestException("Bạn đã nhận thưởng nhiệm vụ này rồi.");
+
+        await GrantMaterialAsync(userId, task.RewardMaterial, task.RewardQty);
+        progress.Claimed = true;
+        progress.ClaimedAt = DateTime.UtcNow;
+        await _progressRepository.SaveChangesAsync();
     }
 
     public async Task<List<InventoryItemDto>> GetInventoryAsync(Guid userId)

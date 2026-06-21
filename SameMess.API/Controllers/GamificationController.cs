@@ -25,4 +25,12 @@ public class GamificationController : ApiControllerBase
     [ProducesResponseType(typeof(List<InventoryItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetInventory()
         => Ok(await _taskService.GetInventoryAsync(CurrentUserId));
+
+    /// <summary>Nhận thưởng cho một nhiệm vụ đã hoàn thành.</summary>
+    [HttpPost("tasks/{code}/claim")]
+    public async Task<IActionResult> ClaimTask(string code)
+    {
+        await _taskService.ClaimAsync(CurrentUserId, code);
+        return NoContent();
+    }
 }
