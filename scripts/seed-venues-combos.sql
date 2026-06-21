@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SEED: Quán hẹn hò + Combo ưu đãi (Date Pass) — THƯƠNG HIỆU NỔI TIẾNG
 -- Xoá sạch quán/voucher cũ rồi tạo lại bằng các brand thật (Starbucks, Pizza 4P's...).
--- Ảnh = ảnh món/quán thật (Unsplash, đã kiểm tra sống) → card hiển thị ảnh phủ kín.
+-- Ảnh = logo brand local trong frontend public/assets/brands/*.png → card hiển thị logo căn giữa nền trắng.
 -- Toạ độ quanh trung tâm TP.HCM (gần seed users 10.7769, 106.7009).
 -- Chạy lại được nhiều lần.
 -- ============================================================================
@@ -17,16 +17,16 @@ DELETE FROM chat."Venues";
 INSERT INTO chat."Venues"
   ("Id","Name","Category","Address","District","City","Latitude","Longitude","ImageUrl","PriceRange","Description","IsActive","CreatedAt")
 VALUES
-  ('bbbb2222-0000-0000-0000-000000000001','Starbucks Coffee','cafe','Rex Hotel, 141 Nguyễn Huệ','Quận 1','TP.HCM',10.7745,106.7030,'https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=600&q=70&auto=format&fit=crop','$$$','Cà phê & Frappuccino chuẩn quốc tế, không gian sang trọng.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000002','Highlands Coffee','cafe','72 Lê Thánh Tôn','Quận 1','TP.HCM',10.7775,106.7012,'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&q=70&auto=format&fit=crop','$$','Phin sữa đá & Freeze trứ danh, quán phủ khắp Việt Nam.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000003','The Coffee House','cafe','86-88 Cao Thắng','Quận 3','TP.HCM',10.7720,106.6820,'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&q=70&auto=format&fit=crop','$$','Không gian trẻ trung, trà đào cam sả best-seller.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000004','Katinat Saigon Kafe','cafe','91 Đồng Khởi','Quận 1','TP.HCM',10.7765,106.7040,'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=70&auto=format&fit=crop','$$','Cà phê sữa đá & trà sữa hot trend giới trẻ Sài Gòn.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000005','Phúc Long Coffee & Tea','cafe','Vincom Đồng Khởi','Quận 1','TP.HCM',10.7780,106.7025,'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=70&auto=format&fit=crop','$$','Trà & cà phê đậm vị, thương hiệu Việt lâu đời.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000006','Gong Cha','dessert','35 Nguyễn Trãi','Quận 1','TP.HCM',10.7690,106.6920,'https://images.unsplash.com/photo-1558857563-b371033873b8?w=600&q=70&auto=format&fit=crop','$','Trà sữa trân châu hoàng kim chuẩn Đài Loan.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000007','Pizza 4P''s','restaurant','8 Thủ Khoa Huân','Quận 1','TP.HCM',10.7730,106.6985,'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=70&auto=format&fit=crop','$$$','Pizza phô mai burrata nhà làm — điểm hẹn hò được yêu thích.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000008','Haidilao Hotpot','restaurant','Vincom Lê Thánh Tôn','Quận 1','TP.HCM',10.7778,106.7018,'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=70&auto=format&fit=crop','$$$','Lẩu Tứ Xuyên, phục vụ 5 sao — ấm cúng cho cặp đôi.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000009','KFC','restaurant','Saigon Centre, 65 Lê Lợi','Quận 1','TP.HCM',10.7738,106.7008,'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=600&q=70&auto=format&fit=crop','$','Gà rán giòn cay trứ danh — combo cặp đôi tiện lợi.',true, now() at time zone 'utc'),
-  ('bbbb2222-0000-0000-0000-000000000010','CGV Cinemas','cinema','Vincom Đồng Khởi','Quận 1','TP.HCM',10.7782,106.7026,'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=600&q=70&auto=format&fit=crop','$$','Rạp chiếu phim hiện đại — ghế đôi Sweetbox cho cặp đôi.',true, now() at time zone 'utc');
+  ('bbbb2222-0000-0000-0000-000000000001','Starbucks Coffee','cafe','Rex Hotel, 141 Nguyễn Huệ','Quận 1','TP.HCM',10.7745,106.7030,'/assets/brands/starbucks.png','$$$','Cà phê & Frappuccino chuẩn quốc tế, không gian sang trọng.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000002','Highlands Coffee','cafe','72 Lê Thánh Tôn','Quận 1','TP.HCM',10.7775,106.7012,'/assets/brands/highlands.png','$$','Phin sữa đá & Freeze trứ danh, quán phủ khắp Việt Nam.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000003','The Coffee House','cafe','86-88 Cao Thắng','Quận 3','TP.HCM',10.7720,106.6820,'/assets/brands/coffeehouse.png','$$','Không gian trẻ trung, trà đào cam sả best-seller.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000004','Katinat Saigon Kafe','cafe','91 Đồng Khởi','Quận 1','TP.HCM',10.7765,106.7040,'/assets/brands/katinat.png','$$','Cà phê sữa đá & trà sữa hot trend giới trẻ Sài Gòn.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000005','Phúc Long Coffee & Tea','cafe','Vincom Đồng Khởi','Quận 1','TP.HCM',10.7780,106.7025,'/assets/brands/phuclong.png','$$','Trà & cà phê đậm vị, thương hiệu Việt lâu đời.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000006','Gong Cha','dessert','35 Nguyễn Trãi','Quận 1','TP.HCM',10.7690,106.6920,'/assets/brands/gongcha.png','$','Trà sữa trân châu hoàng kim chuẩn Đài Loan.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000007','Pizza 4P''s','restaurant','8 Thủ Khoa Huân','Quận 1','TP.HCM',10.7730,106.6985,'/assets/brands/pizza4ps.png','$$$','Pizza phô mai burrata nhà làm — điểm hẹn hò được yêu thích.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000008','Haidilao Hotpot','restaurant','Vincom Lê Thánh Tôn','Quận 1','TP.HCM',10.7778,106.7018,'/assets/brands/haidilao.png','$$$','Lẩu Tứ Xuyên, phục vụ 5 sao — ấm cúng cho cặp đôi.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000009','KFC','restaurant','Saigon Centre, 65 Lê Lợi','Quận 1','TP.HCM',10.7738,106.7008,'/assets/brands/kfc.png','$','Gà rán giòn cay trứ danh — combo cặp đôi tiện lợi.',true, now() at time zone 'utc'),
+  ('bbbb2222-0000-0000-0000-000000000010','CGV Cinemas','cinema','Vincom Đồng Khởi','Quận 1','TP.HCM',10.7782,106.7026,'/assets/brands/cgv.png','$$','Rạp chiếu phim hiện đại — ghế đôi Sweetbox cho cặp đôi.',true, now() at time zone 'utc');
 
 -- 2) COMBO ƯU ĐÃI
 INSERT INTO chat."VenueCombos"
