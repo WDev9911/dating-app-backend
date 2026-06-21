@@ -198,5 +198,6 @@ public class SubscriptionService : ISubscriptionService
         CanUndo = e.CanUndo,
         CanBoost = e.CanBoost,
         CanSeeLikedMePhotos = e.CanSeeLikedMePhotos,
+        SuperLikesPerDay = e.SuperLikesPerDay,
     };
 }

@@ -7,4 +7,5 @@ public class EntitlementsDto
     public bool CanUndo { get; set; }
     public bool CanBoost { get; set; }
     public bool CanSeeLikedMePhotos { get; set; }
+    public int SuperLikesPerDay { get; set; }
 }

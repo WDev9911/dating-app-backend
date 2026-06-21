@@ -52,4 +52,10 @@ public class SwipeRepository : BaseRepository<Swipe>, ISwipeRepository
             s.SwiperId == userId
             && s.CreatedAt >= sinceUtc
             && (s.Action == SwipeAction.Like || s.Action == SwipeAction.SuperLike));
+
+    public async Task<int> CountSuperLikesSinceAsync(Guid userId, DateTime sinceUtc) =>
+        await _dbSet.CountAsync(s =>
+            s.SwiperId == userId
+            && s.CreatedAt >= sinceUtc
+            && s.Action == SwipeAction.SuperLike);
 }

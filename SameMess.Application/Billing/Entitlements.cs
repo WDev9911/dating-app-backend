@@ -11,6 +11,7 @@ public class PlanEntitlements
     public bool CanUndo { get; init; }
     public bool CanBoost { get; init; }
     public bool CanSeeLikedMePhotos { get; init; }
+    public int SuperLikesPerDay { get; init; }        // Super Swipe/ngày: Free 0, Plus 5, Gold 10
 }
 
 public static class Entitlements
@@ -26,6 +27,7 @@ public static class Entitlements
             CanUndo = true,
             CanBoost = true,
             CanSeeLikedMePhotos = true,
+            SuperLikesPerDay = 10,
         },
         PlanCode.Plus => new PlanEntitlements
         {
@@ -34,6 +36,7 @@ public static class Entitlements
             CanUndo = true,
             CanBoost = false,
             CanSeeLikedMePhotos = false,
+            SuperLikesPerDay = 5,
         },
         _ => new PlanEntitlements
         {

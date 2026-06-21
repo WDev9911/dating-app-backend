@@ -18,4 +18,7 @@ public interface ISwipeRepository : IBaseRepository<Swipe>
 
     /// <summary>Số lượt Like/SuperLike user đã thực hiện kể từ mốc UTC (đếm giới hạn/ngày cho gói Free).</summary>
     Task<int> CountLikesSinceAsync(Guid userId, DateTime sinceUtc);
+
+    /// <summary>Số lượt Super Swipe user đã dùng kể từ mốc UTC (đếm quota Plus/Gold/ngày).</summary>
+    Task<int> CountSuperLikesSinceAsync(Guid userId, DateTime sinceUtc);
 }

@@ -58,6 +58,18 @@ public class SwipeService : ISwipeService
         if (await _swipeRepository.GetAsync(userId, dto.TargetUserId) is not null)
             throw new ConflictException("You have already swiped this user.");
 
+        // Super Swipe: chỉ Plus/Gold + giới hạn lượt/ngày (Plus 5, Gold 10)
+        if (dto.Action == SwipeAction.SuperLike)
+        {
+            var ent = await _subscriptionService.GetEntitlementsAsync(userId);
+            if (ent.SuperLikesPerDay <= 0)
+                throw new ForbiddenException("Super Swipe là đặc quyền gói Plus/Gold. Nâng cấp để dùng.");
+            var sinceDay = DateTime.UtcNow.Date;
+            var usedToday = await _swipeRepository.CountSuperLikesSinceAsync(userId, sinceDay);
+            if (usedToday >= ent.SuperLikesPerDay)
+                throw new BadRequestException($"Bạn đã dùng hết {ent.SuperLikesPerDay} lượt Super Swipe hôm nay.");
+        }
+
         // Gói Free bị giới hạn số Like/SuperLike mỗi ngày; Plus/Gold không giới hạn
         if (SwipeAction.IsLike(dto.Action))
         {
