@@ -41,6 +41,12 @@ public class ProfileController : ApiControllerBase
     public async Task<IActionResult> GetMyProfile()
         => Ok(await _profileService.GetMyProfileAsync(CurrentUserId));
 
+    /// <summary>Hồ sơ công khai của người khác (xem khi đã match) — ẩn preference & toạ độ.</summary>
+    [HttpGet("{userId:guid}")]
+    [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPublicProfile(Guid userId)
+        => Ok(await _profileService.GetPublicProfileAsync(userId));
+
     /// <summary>Cập nhật thông tin hồ sơ (tên, giới tính, ngày sinh, bio, mục tiêu...).</summary>
     [HttpPut]
     [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]

@@ -5,6 +5,7 @@ namespace SameMess.Application.Interfaces.Services;
 public interface IProfileService
 {
     Task<ProfileDto> GetMyProfileAsync(Guid userId);
+    Task<ProfileDto> GetPublicProfileAsync(Guid userId);
     Task<ProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
     Task<ProfileDto> UpdateLocationAsync(Guid userId, UpdateLocationDto dto);
 

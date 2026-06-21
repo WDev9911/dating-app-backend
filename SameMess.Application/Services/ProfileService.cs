@@ -45,6 +45,17 @@ public class ProfileService : IProfileService
         return _mapper.Map<ProfileDto>(user);
     }
 
+    /// <summary>Hồ sơ công khai của người khác (ẩn preference + toạ độ chính xác).</summary>
+    public async Task<ProfileDto> GetPublicProfileAsync(Guid userId)
+    {
+        var user = await LoadUserAsync(userId);
+        var dto = _mapper.Map<ProfileDto>(user);
+        dto.Preference = null;
+        dto.Latitude = null;
+        dto.Longitude = null;
+        return dto;
+    }
+
     public async Task<ProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
     {
         var user = await LoadUserAsync(userId);
