@@ -34,6 +34,7 @@ public class DiscoveryRepository : IDiscoveryRepository
                 .ThenInclude(u => u.Preference)
             .Where(p => p.UserId != excludeUserId)
             .Where(p => !excludeUserIds.Contains(p.UserId))
+            .Where(p => p.User.Status == UserStatus.Active)   // bỏ user bị ban/khoá
             .Where(p => p.IsProfileCompleted)
             .Where(p => p.Latitude != null && p.Longitude != null)
             .Where(p => p.Latitude >= minLat && p.Latitude <= maxLat)
