@@ -24,10 +24,10 @@ public class DiscoveryController : ApiControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(List<DiscoveryProfileDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetFeed([FromQuery] int limit = DefaultLimit)
+    public async Task<IActionResult> GetFeed([FromQuery] int limit = DefaultLimit, [FromQuery] bool includeSwiped = false)
     {
         limit = Math.Clamp(limit, 1, MaxLimit);
-        var feed = await _discoveryService.GetFeedAsync(CurrentUserId, limit);
+        var feed = await _discoveryService.GetFeedAsync(CurrentUserId, limit, includeSwiped);
         return Ok(feed);
     }
 }

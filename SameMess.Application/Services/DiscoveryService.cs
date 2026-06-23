@@ -40,7 +40,7 @@ public class DiscoveryService : IDiscoveryService
         _mapper = mapper;
     }
 
-    public async Task<List<DiscoveryProfileDto>> GetFeedAsync(Guid userId, int limit)
+    public async Task<List<DiscoveryProfileDto>> GetFeedAsync(Guid userId, int limit, bool includeSwiped = false)
     {
         var me = await _userRepository.GetFullProfileAsync(userId)
             ?? throw new NotFoundException("User", userId);
@@ -81,7 +81,10 @@ public class DiscoveryService : IDiscoveryService
 
         // Loại khỏi feed: người tôi đã swipe + người có quan hệ block (2 chiều)
         // + người đã SuperLike mình (họ chỉ hiển thị ở mục riêng /superliked-me, tránh trùng)
-        var alreadySwiped = await _swipeRepository.GetSwipedTargetIdsAsync(userId);
+        // includeSwiped = true (nút "Tải lại gợi ý"): hiện lại tất cả, chỉ loại block + superLiker.
+        var alreadySwiped = includeSwiped
+            ? new List<Guid>()
+            : await _swipeRepository.GetSwipedTargetIdsAsync(userId);
         var blockedRelated = await _blockRepository.GetRelatedUserIdsAsync(userId);
         var superLikers = (await _swipeRepository.GetSuperLikersAsync(userId)).Select(s => s.SwiperId);
         var excludeIds = alreadySwiped.Concat(blockedRelated).Concat(superLikers).Distinct().ToList();
