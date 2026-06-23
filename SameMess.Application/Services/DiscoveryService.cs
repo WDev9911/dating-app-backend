@@ -21,6 +21,7 @@ public class DiscoveryService : IDiscoveryService
     private readonly IDiscoveryRepository _discoveryRepository;
     private readonly ISwipeRepository _swipeRepository;
     private readonly IBlockRepository _blockRepository;
+    private readonly IMatchRepository _matchRepository;
     private readonly IReputationService _reputationService;
     private readonly IMapper _mapper;
 
@@ -29,6 +30,7 @@ public class DiscoveryService : IDiscoveryService
         IDiscoveryRepository discoveryRepository,
         ISwipeRepository swipeRepository,
         IBlockRepository blockRepository,
+        IMatchRepository matchRepository,
         IReputationService reputationService,
         IMapper mapper)
     {
@@ -36,6 +38,7 @@ public class DiscoveryService : IDiscoveryService
         _discoveryRepository = discoveryRepository;
         _swipeRepository = swipeRepository;
         _blockRepository = blockRepository;
+        _matchRepository = matchRepository;
         _reputationService = reputationService;
         _mapper = mapper;
     }
@@ -87,7 +90,11 @@ public class DiscoveryService : IDiscoveryService
             : await _swipeRepository.GetSwipedTargetIdsAsync(userId);
         var blockedRelated = await _blockRepository.GetRelatedUserIdsAsync(userId);
         var superLikers = (await _swipeRepository.GetSuperLikersAsync(userId)).Select(s => s.SwiperId);
-        var excludeIds = alreadySwiped.Concat(blockedRelated).Concat(superLikers).Distinct().ToList();
+        // Luôn loại người đã match (kể cả khi includeSwiped) — không hiện lại người đã ghép đôi
+        var matchedPartners = (await _matchRepository.GetActiveForUserAsync(userId))
+            .Select(m => m.UserAId == userId ? m.UserBId : m.UserAId);
+        var excludeIds = alreadySwiped.Concat(blockedRelated).Concat(superLikers)
+            .Concat(matchedPartners).Distinct().ToList();
 
         var candidates = await _discoveryRepository.GetCandidatesAsync(
             userId, excludeIds, requiredGender, myGender, myAge, minBirthDate, maxBirthDate,
