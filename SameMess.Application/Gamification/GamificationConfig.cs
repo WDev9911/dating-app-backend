@@ -21,6 +21,9 @@ public static class GamificationConfig
 {
     public const int PercentPerLevel = 100;
 
+    /// <summary>Cấp tối đa của cây (7 ảnh: 1..7). Đạt cấp 7 là max, khoá không lên tiếp.</summary>
+    public const int MaxLevel = 7;
+
     /// <summary>Khi CẢ HAI cùng tưới trong ngày, lần tưới "chốt cặp" được nhân % này (thưởng bonus).</summary>
     public const int BothWateredBonusMultiplier = 2;
 

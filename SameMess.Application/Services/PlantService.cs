@@ -50,6 +50,11 @@ public class PlantService : IPlantService
             throw new BadRequestException($"Bạn không còn {material} để tưới.");
 
         var (plant, _) = await GetOrCreatePlantAsync(matchId);
+
+        // Cây đã đạt cấp tối đa → khoá, không cho tưới thêm (tránh phí nguyên liệu)
+        if (plant.Level >= GamificationConfig.MaxLevel)
+            throw new BadRequestException($"Cây đã đạt cấp tối đa (Cấp {GamificationConfig.MaxLevel}) 🌳💖");
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var isUserA = match.UserAId == userId;
 
@@ -82,13 +87,21 @@ public class PlantService : IPlantService
         plant.GrowthPercent += growth;
         var leveledUp = false;
         var milestoneReached = false;
-        while (plant.GrowthPercent >= GamificationConfig.PercentPerLevel)
+        while (plant.GrowthPercent >= GamificationConfig.PercentPerLevel
+               && plant.Level < GamificationConfig.MaxLevel)
         {
             plant.GrowthPercent -= GamificationConfig.PercentPerLevel;
             plant.Level += 1;
             leveledUp = true;
             if (GamificationConfig.IsMilestone(plant.Level))
                 milestoneReached = true;
+        }
+
+        // Đạt cấp tối đa (7): khoá cấp, giữ thanh tiến độ đầy 100%, không tích luỹ % thừa
+        if (plant.Level >= GamificationConfig.MaxLevel)
+        {
+            plant.Level = GamificationConfig.MaxLevel;
+            plant.GrowthPercent = GamificationConfig.PercentPerLevel;
         }
 
         // Tiêu nguyên liệu
