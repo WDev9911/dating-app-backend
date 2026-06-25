@@ -20,24 +20,32 @@ public class SwipeRepository : BaseRepository<Swipe>, ISwipeRepository
 
     public async Task<List<Swipe>> GetLikersAsync(Guid userId)
     {
-        var myTargets = _dbSet.Where(s => s.SwiperId == userId).Select(s => s.TargetUserId);
+        // Chỉ ẩn những người mình đã Like/SuperLike (đã thành / sắp thành match).
+        // Người mình từng Pass vẫn hiển thị nếu họ thích mình — để có thể đổi ý.
+        var myLikedTargets = _dbSet
+            .Where(s => s.SwiperId == userId
+                        && (s.Action == SwipeAction.Like || s.Action == SwipeAction.SuperLike))
+            .Select(s => s.TargetUserId);
 
         return await _dbSet
             .Where(s => s.TargetUserId == userId
                         && s.Action == SwipeAction.Like
-                        && !myTargets.Contains(s.SwiperId))
+                        && !myLikedTargets.Contains(s.SwiperId))
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
     }
 
     public async Task<List<Swipe>> GetSuperLikersAsync(Guid userId)
     {
-        var myTargets = _dbSet.Where(s => s.SwiperId == userId).Select(s => s.TargetUserId);
+        var myLikedTargets = _dbSet
+            .Where(s => s.SwiperId == userId
+                        && (s.Action == SwipeAction.Like || s.Action == SwipeAction.SuperLike))
+            .Select(s => s.TargetUserId);
 
         return await _dbSet
             .Where(s => s.TargetUserId == userId
                         && s.Action == SwipeAction.SuperLike
-                        && !myTargets.Contains(s.SwiperId))
+                        && !myLikedTargets.Contains(s.SwiperId))
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
     }

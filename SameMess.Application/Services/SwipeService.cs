@@ -55,8 +55,53 @@ public class SwipeService : ISwipeService
         if (await _blockRepository.ExistsBetweenAsync(userId, dto.TargetUserId))
             throw new ForbiddenException("You cannot swipe a user you have blocked or who has blocked you.");
 
-        if (await _swipeRepository.GetAsync(userId, dto.TargetUserId) is not null)
+        var existingSwipe = await _swipeRepository.GetAsync(userId, dto.TargetUserId);
+        if (existingSwipe is not null)
+        {
+            // Cho phép "đổi ý": nếu trước đó Pass và giờ Like/SuperLike (vd. từ tab "Đã thích bạn")
+            // thì nâng cấp lượt vuốt thay vì chặn. Mọi trường hợp khác giữ nguyên 409.
+            if (existingSwipe.Action == SwipeAction.Pass && SwipeAction.IsLike(dto.Action))
+            {
+                existingSwipe.Action = dto.Action;
+                existingSwipe.CreatedAt = DateTime.UtcNow;
+
+                Guid? upgradeMatchId = null;
+                var reverseUp = await _swipeRepository.GetAsync(dto.TargetUserId, userId);
+                if (reverseUp is not null && SwipeAction.IsLike(reverseUp.Action))
+                    upgradeMatchId = await EnsureMatchAsync(userId, dto.TargetUserId);
+
+                await _swipeRepository.SaveChangesAsync();
+
+                try
+                {
+                    await _taskService.RecordActionAsync(userId, GameAction.Swipe);
+                    if (upgradeMatchId is not null)
+                    {
+                        await _taskService.RecordActionAsync(userId, GameAction.Match);
+                        await _taskService.RecordActionAsync(dto.TargetUserId, GameAction.Match);
+                        await _reputationService.RecordEventAsync(userId, ReputationEventType.GotMatch);
+                        await _reputationService.RecordEventAsync(dto.TargetUserId, ReputationEventType.GotMatch);
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    if (upgradeMatchId is not null)
+                    {
+                        await _notificationService.NotifyAsync(userId, NotificationType.Match,
+                            "Match mới! 🎉", "Bạn vừa có một match mới.", upgradeMatchId.ToString());
+                        await _notificationService.NotifyAsync(dto.TargetUserId, NotificationType.Match,
+                            "Match mới! 🎉", "Bạn vừa có một match mới.", upgradeMatchId.ToString());
+                    }
+                }
+                catch { }
+
+                return new SwipeResultDto { IsMatch = upgradeMatchId is not null, MatchId = upgradeMatchId };
+            }
+
             throw new ConflictException("You have already swiped this user.");
+        }
 
         // Super Swipe: chỉ Plus/Gold + giới hạn lượt/ngày (Plus 5, Gold 10)
         if (dto.Action == SwipeAction.SuperLike)
