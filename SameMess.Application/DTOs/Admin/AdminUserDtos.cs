@@ -10,6 +10,8 @@ public class AdminUserListItemDto
     public bool IsEmailVerified { get; set; }
     public bool IsPhotoVerified { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? LastActiveAt { get; set; }   // mốc hoạt động gần nhất (UTC)
+    public bool IsOnline { get; set; }             // còn hoạt động trong vài phút gần đây
 }
 
 public class AdminUserDetailDto : AdminUserListItemDto

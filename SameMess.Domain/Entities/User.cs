@@ -16,6 +16,7 @@ public class User
     public bool LoginAlertsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public DateTime? LastActiveAt { get; set; }   // mốc hoạt động gần nhất (cho admin xem online/offline)
 
     public UserProfile? Profile { get; set; }
     public UserPreference? Preference { get; set; }

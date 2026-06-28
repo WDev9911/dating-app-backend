@@ -152,6 +152,7 @@ app.UseStaticFiles();      // phục vụ ảnh đã upload trong wwwroot
 app.UseCors(WebClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<SameMess.API.Middleware.LastActiveMiddleware>(); // ghi nhận hoạt động gần nhất
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.Run();

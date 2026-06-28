@@ -193,6 +193,9 @@ public class AdminUserService : IAdminUserService
         return new BulkActionResultDto { Affected = affected };
     }
 
+    // Coi là "đang hoạt động" nếu có heartbeat trong vòng 5 phút gần đây.
+    private static readonly TimeSpan OnlineWindow = TimeSpan.FromMinutes(5);
+
     private static AdminUserListItemDto ToListItem(User u) => new()
     {
         Id = u.Id,
@@ -203,6 +206,8 @@ public class AdminUserService : IAdminUserService
         IsEmailVerified = u.IsEmailVerified,
         IsPhotoVerified = u.Profile?.IsPhotoVerified ?? false,
         CreatedAt = u.CreatedAt,
+        LastActiveAt = u.LastActiveAt,
+        IsOnline = u.LastActiveAt.HasValue && u.LastActiveAt.Value >= DateTime.UtcNow - OnlineWindow,
     };
 
     private static AdminNoteDto ToNoteDto(AdminNote n) => new()
