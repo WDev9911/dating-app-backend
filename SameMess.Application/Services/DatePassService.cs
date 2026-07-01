@@ -1,3 +1,5 @@
+using System.Globalization;
+using SameMess.Application.DTOs.Billing;
 using SameMess.Application.DTOs.DatePass;
 using SameMess.Application.Interfaces.Services;
 using SameMess.Domain.Entities;
@@ -19,6 +21,7 @@ public class DatePassService : IDatePassService
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
+    private readonly IPayOsGateway _payos;
 
     public DatePassService(
         IVenueComboRepository comboRepository,
@@ -27,7 +30,8 @@ public class DatePassService : IDatePassService
         IMatchPlantRepository plantRepository,
         IUserRepository userRepository,
         IEmailService emailService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IPayOsGateway payos)
     {
         _comboRepository = comboRepository;
         _orderRepository = orderRepository;
@@ -36,6 +40,7 @@ public class DatePassService : IDatePassService
         _userRepository = userRepository;
         _emailService = emailService;
         _notificationService = notificationService;
+        _payos = payos;
     }
 
     public async Task<List<VenueComboDto>> GetCombosAsync()
@@ -66,54 +71,27 @@ public class DatePassService : IDatePassService
 
     public async Task<DatePassOrderDto> CreateOrderAsync(Guid userId, CreateDatePassOrderDto dto)
     {
-        // Combo hợp lệ
-        var combo = await _comboRepository.GetWithVenueAsync(dto.ComboId)
-            ?? throw new NotFoundException("Combo", dto.ComboId);
-        if (!combo.IsActive) throw new BadRequestException("Combo không còn khả dụng.");
-
-        // Match phải thuộc về user + đạt Level 4
-        var matches = await _matchService.GetMyMatchesAsync(userId);
-        var match = matches.FirstOrDefault(m => m.MatchId == dto.MatchId)
-            ?? throw new ForbiddenException("Bạn không thuộc cặp match này.");
-        var plant = await _plantRepository.GetByMatchIdAsync(dto.MatchId);
-        if ((plant?.Level ?? 1) < UnlockLevel)
-            throw new ForbiddenException($"Cần chăm cây đạt Cấp {UnlockLevel} để đặt combo hẹn hò.");
-
-        // Chống mua trùng: cặp đã có voucher đang hiệu lực cho đúng loại combo này
-        var existing = await _orderRepository.GetActiveForCoupleComboAsync(dto.MatchId, dto.ComboId);
-        if (existing is not null)
-            throw new ConflictException("Cặp của bạn đã có voucher cho combo này. Hãy dùng hoặc đợi hết hạn trước khi mua lại.");
-
-        // CHỐNG LẠM DỤNG: voucher luôn gửi tới EMAIL ĐĂNG KÝ của CẢ HAI người trong cặp
-        // (không cho nhập tay) → chắc chắn đến đúng 2 người match.
-        var email = (await _userRepository.GetByIdAsync(userId))?.Email;
-        var partnerEmail = (await _userRepository.GetByIdAsync(match.UserId))?.Email;
-
-        var now = DateTime.UtcNow;
-        var order = new DatePassOrder
-        {
-            Id = Guid.NewGuid(),
-            MatchId = dto.MatchId,
-            BuyerId = userId,
-            VenueId = combo.VenueId,
-            ComboId = combo.Id,
-            VenueName = combo.Venue.Name,
-            ComboTitle = combo.Title,
-            AmountVnd = combo.SalePriceVnd,
-            CommissionVnd = combo.SalePriceVnd * combo.CommissionPercent / 100,
-            VoucherCode = GenerateVoucherCode(),
-            Email = email,
-            PartnerEmail = partnerEmail,
-            Status = DatePassStatus.Pending,
-            CreatedAt = now,
-            ExpiresAt = now.AddDays(VoucherValidDays),
-        };
-        await _orderRepository.AddAsync(order);
-        await _orderRepository.SaveChangesAsync();
-
-        return ToOrderDto(order, userId, match.DisplayName);
+        var order = await BuildPendingOrderAsync(userId, dto, null);
+        return ToOrderDto(order, userId, order.PartnerName ?? "Người ấy");
     }
 
+    /// <summary>Tạo đơn ưu đãi + link thanh toán PayOS thật (VietQR).</summary>
+    public async Task<PayOsCreateResultDto> CreatePayOsOrderAsync(Guid userId, CreateDatePassOrderDto dto)
+    {
+        // orderCode duy nhất (giống luồng Premium) — lưu vào đơn để đối chiếu webhook.
+        var orderCode = DateTimeOffset.UtcNow.ToUnixTimeSeconds() * 1000 + Random.Shared.Next(0, 1000);
+        var order = await BuildPendingOrderAsync(userId, dto, orderCode);
+
+        var baseUrl = _payos.FrontendBaseUrl;
+        return await _payos.CreatePaymentAsync(
+            orderCode,
+            order.AmountVnd,
+            "SameMess uu dai",
+            returnUrl: $"{baseUrl}/date-pass?payment=success",
+            cancelUrl: $"{baseUrl}/date-pass?payment=cancel");
+    }
+
+    /// <summary>[DEV/mock] Đánh dấu đã trả tiền → phát voucher + gửi email.</summary>
     public async Task<DatePassOrderDto> ConfirmAsync(Guid userId, Guid orderId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId)
@@ -123,60 +101,31 @@ public class DatePassService : IDatePassService
         if (order.Status != DatePassStatus.Pending)
             throw new BadRequestException("Đơn đã được xử lý.");
 
-        order.Status = DatePassStatus.Paid;
-        order.PaidAt = DateTime.UtcNow;
-        await _orderRepository.UpdateAsync(order);
-        await _orderRepository.SaveChangesAsync();
-
-        // Gửi email voucher tới CẢ HAI (cùng 1 mã) — fail-safe: lỗi email không làm hỏng thanh toán
-        var model = new VoucherEmailModel
-        {
-            VenueName = order.VenueName,
-            ComboTitle = order.ComboTitle,
-            AmountVnd = order.AmountVnd,
-            VoucherCode = order.VoucherCode,
-            QrUrl = QrUrl(order.VoucherCode),
-            ExpiresAt = order.ExpiresAt,
-        };
-        var recipients = new[] { order.Email, order.PartnerEmail }
-            .Where(e => !string.IsNullOrWhiteSpace(e))
-            .Select(e => e!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-        foreach (var to in recipients)
-        {
-            try { await _emailService.SendVoucherEmailAsync(to, model); }
-            catch { /* bỏ qua lỗi gửi email — voucher vẫn hiện trong app */ }
-        }
-
-        // Báo cho đối phương biết (minh bạch + chống lạm dụng âm thầm) — fail-safe
-        var matches = await _matchService.GetMyMatchesAsync(userId);
-        var partner = matches.FirstOrDefault(m => m.MatchId == order.MatchId);
-        if (partner is not null)
-        {
-            try
-            {
-                await _notificationService.NotifyAsync(partner.UserId, NotificationType.Match,
-                    "Combo hẹn hò mới 🎟️",
-                    $"Người ấy vừa đặt \"{order.ComboTitle}\" tại {order.VenueName} cho buổi hẹn của hai bạn. Kiểm tra email để nhận voucher!",
-                    order.Id.ToString());
-            }
-            catch { /* không để thông báo làm hỏng luồng */ }
-        }
-
-        return ToOrderDto(order, userId, partner?.DisplayName ?? "Người ấy");
+        await PayAndDispatchAsync(order);
+        return ToOrderDto(order, userId, order.PartnerName ?? "Người ấy");
     }
 
+    /// <summary>Webhook PayOS đã verify → nếu là đơn ưu đãi thì đánh dấu Paid + gửi voucher.</summary>
+    public async Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult webhook)
+    {
+        var order = await _orderRepository.GetByPayOsOrderCodeAsync(webhook.OrderCode);
+        if (order is null) return false; // không phải đơn ưu đãi
+
+        if (webhook.Success
+            && order.Status == DatePassStatus.Pending
+            && order.AmountVnd == webhook.AmountVnd)
+        {
+            await PayAndDispatchAsync(order);
+        }
+        return true;
+    }
+
+    /// <summary>Quán quét QR (trong app) xác nhận đã sử dụng — dành cho user đã đăng nhập.</summary>
     public async Task<DatePassOrderDto> RedeemAsync(Guid userId, Guid orderId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId)
             ?? throw new NotFoundException("Đơn", orderId);
-        if (order.Status == DatePassStatus.Redeemed)
-            throw new BadRequestException("Voucher đã được sử dụng.");
-        if (order.Status != DatePassStatus.Paid)
-            throw new BadRequestException("Voucher chưa thanh toán nên không thể sử dụng.");
-
-        order.Status = DatePassStatus.Redeemed;
-        order.RedeemedAt = DateTime.UtcNow;
+        MarkRedeemed(order);
         await _orderRepository.UpdateAsync(order);
         await _orderRepository.SaveChangesAsync();
 
@@ -184,12 +133,30 @@ public class DatePassService : IDatePassService
         return ToOrderDto(order, userId, name);
     }
 
+    // ── Trang voucher công khai (quán quét QR mở ra, không cần đăng nhập) ──
+    public async Task<VoucherPublicDto> GetVoucherAsync(Guid orderId)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId)
+            ?? throw new NotFoundException("Voucher", orderId);
+        return ToVoucherPublicDto(order);
+    }
+
+    public async Task<VoucherPublicDto> RedeemVoucherPublicAsync(Guid orderId)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId)
+            ?? throw new NotFoundException("Voucher", orderId);
+        MarkRedeemed(order);
+        await _orderRepository.UpdateAsync(order);
+        await _orderRepository.SaveChangesAsync();
+        return ToVoucherPublicDto(order);
+    }
+
     public async Task<List<DatePassOrderDto>> GetMyOrdersAsync(Guid userId)
     {
         var matches = await _matchService.GetMyMatchesAsync(userId);
         var nameByMatch = matches.ToDictionary(m => m.MatchId, m => m.DisplayName);
         var orders = await _orderRepository.GetForMatchesAsync(nameByMatch.Keys);
-        return orders.Select(o => ToOrderDto(o, userId, nameByMatch.GetValueOrDefault(o.MatchId, "Người ấy"))).ToList();
+        return orders.Select(o => ToOrderDto(o, userId, nameByMatch.GetValueOrDefault(o.MatchId, o.PartnerName ?? "Người ấy"))).ToList();
     }
 
     public async Task<DatePassRevenueDto> GetRevenueAsync()
@@ -242,14 +209,127 @@ public class DatePassService : IDatePassService
     }
 
     // ── helpers ──
+
+    /// <summary>
+    /// Tạo đơn Pending (dùng chung cho luồng mock lẫn PayOS): validate combo/match/cây,
+    /// chặn mua trùng, snapshot tên + email cả hai người, sinh mã voucher.
+    /// </summary>
+    private async Task<DatePassOrder> BuildPendingOrderAsync(Guid userId, CreateDatePassOrderDto dto, long? payOsOrderCode)
+    {
+        var combo = await _comboRepository.GetWithVenueAsync(dto.ComboId)
+            ?? throw new NotFoundException("Combo", dto.ComboId);
+        if (!combo.IsActive) throw new BadRequestException("Combo không còn khả dụng.");
+
+        var matches = await _matchService.GetMyMatchesAsync(userId);
+        var match = matches.FirstOrDefault(m => m.MatchId == dto.MatchId)
+            ?? throw new ForbiddenException("Bạn không thuộc cặp match này.");
+        var plant = await _plantRepository.GetByMatchIdAsync(dto.MatchId);
+        if ((plant?.Level ?? 1) < UnlockLevel)
+            throw new ForbiddenException($"Cần chăm cây đạt Cấp {UnlockLevel} để đặt combo hẹn hò.");
+
+        // Chống mua trùng: cặp đã có voucher đang hiệu lực cho đúng loại combo này
+        var existing = await _orderRepository.GetActiveForCoupleComboAsync(dto.MatchId, dto.ComboId);
+        if (existing is not null)
+            throw new ConflictException("Cặp của bạn đã có voucher cho combo này. Hãy dùng hoặc đợi hết hạn trước khi mua lại.");
+
+        // CHỐNG LẠM DỤNG: voucher luôn gửi tới EMAIL ĐĂNG KÝ của CẢ HAI người (không cho nhập tay).
+        var buyer = await _userRepository.GetByIdAsync(userId);
+        var partner = await _userRepository.GetByIdAsync(match.UserId);
+
+        var now = DateTime.UtcNow;
+        var order = new DatePassOrder
+        {
+            Id = Guid.NewGuid(),
+            MatchId = dto.MatchId,
+            BuyerId = userId,
+            PartnerId = match.UserId,
+            VenueId = combo.VenueId,
+            ComboId = combo.Id,
+            VenueName = combo.Venue.Name,
+            ComboTitle = combo.Title,
+            BuyerName = buyer?.Profile?.DisplayName ?? "Người mua",
+            PartnerName = match.DisplayName,
+            AmountVnd = combo.SalePriceVnd,
+            CommissionVnd = combo.SalePriceVnd * combo.CommissionPercent / 100,
+            VoucherCode = GenerateVoucherCode(),
+            PayOsOrderCode = payOsOrderCode,
+            Email = buyer?.Email,
+            PartnerEmail = partner?.Email,
+            Status = DatePassStatus.Pending,
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(VoucherValidDays),
+        };
+        await _orderRepository.AddAsync(order);
+        await _orderRepository.SaveChangesAsync();
+        return order;
+    }
+
+    /// <summary>Đánh dấu Paid → gửi voucher (QR trỏ tới trang voucher) cho cả hai + báo đối phương. Fail-safe.</summary>
+    private async Task PayAndDispatchAsync(DatePassOrder order)
+    {
+        order.Status = DatePassStatus.Paid;
+        order.PaidAt = DateTime.UtcNow;
+        await _orderRepository.UpdateAsync(order);
+        await _orderRepository.SaveChangesAsync();
+
+        var model = new VoucherEmailModel
+        {
+            VenueName = order.VenueName,
+            ComboTitle = order.ComboTitle,
+            AmountVnd = order.AmountVnd,
+            VoucherCode = order.VoucherCode,
+            QrUrl = VoucherQrUrl(order.Id),
+            ExpiresAt = order.ExpiresAt,
+        };
+        var recipients = new[] { order.Email, order.PartnerEmail }
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .Select(e => e!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        foreach (var to in recipients)
+        {
+            try { await _emailService.SendVoucherEmailAsync(to, model); }
+            catch { /* bỏ qua lỗi gửi email — voucher vẫn hiện trong app */ }
+        }
+
+        // Báo cho đối phương biết (minh bạch + chống lạm dụng âm thầm) — fail-safe
+        if (order.PartnerId is Guid partnerId)
+        {
+            try
+            {
+                await _notificationService.NotifyAsync(partnerId, NotificationType.Match,
+                    "Combo hẹn hò mới 🎟️",
+                    $"Người ấy vừa đặt \"{order.ComboTitle}\" tại {order.VenueName} cho buổi hẹn của hai bạn. Kiểm tra email để nhận voucher!",
+                    order.Id.ToString());
+            }
+            catch { /* không để thông báo làm hỏng luồng */ }
+        }
+    }
+
+    private static void MarkRedeemed(DatePassOrder order)
+    {
+        if (order.Status == DatePassStatus.Redeemed)
+            throw new BadRequestException("Voucher đã được sử dụng.");
+        if (order.Status != DatePassStatus.Paid)
+            throw new BadRequestException("Voucher chưa thanh toán nên không thể sử dụng.");
+        if (order.ExpiresAt < DateTime.UtcNow)
+            throw new BadRequestException("Voucher đã hết hạn.");
+
+        order.Status = DatePassStatus.Redeemed;
+        order.RedeemedAt = DateTime.UtcNow;
+    }
+
     private async Task<string> PartnerNameAsync(Guid userId, Guid matchId)
     {
         var matches = await _matchService.GetMyMatchesAsync(userId);
         return matches.FirstOrDefault(m => m.MatchId == matchId)?.DisplayName ?? "Người ấy";
     }
 
-    private static string QrUrl(string code) =>
-        $"https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={Uri.EscapeDataString(code)}";
+    /// <summary>QR chứa LINK trang voucher công khai → quét ra hiện đầy đủ thông tin.</summary>
+    private string VoucherQrUrl(Guid orderId)
+    {
+        var target = $"{_payos.FrontendBaseUrl}/voucher/{orderId}";
+        return $"https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={Uri.EscapeDataString(target)}";
+    }
 
     private static string GenerateVoucherCode()
     {
@@ -277,7 +357,7 @@ public class DatePassService : IDatePassService
         CommissionPercent = c.CommissionPercent,
     };
 
-    private static DatePassOrderDto ToOrderDto(DatePassOrder o, Guid userId, string partnerName) => new()
+    private DatePassOrderDto ToOrderDto(DatePassOrder o, Guid userId, string partnerName) => new()
     {
         Id = o.Id,
         MatchId = o.MatchId,
@@ -287,7 +367,7 @@ public class DatePassService : IDatePassService
         AmountVnd = o.AmountVnd,
         CommissionVnd = o.CommissionVnd,
         VoucherCode = o.VoucherCode,
-        QrUrl = QrUrl(o.VoucherCode),
+        QrUrl = VoucherQrUrl(o.Id),
         Status = o.Status,
         Email = o.Email,
         IsMine = o.BuyerId == userId,
@@ -295,4 +375,25 @@ public class DatePassService : IDatePassService
         ExpiresAt = o.ExpiresAt,
         RedeemedAt = o.RedeemedAt,
     };
+
+    private static VoucherPublicDto ToVoucherPublicDto(DatePassOrder o)
+    {
+        var expired = o.ExpiresAt < DateTime.UtcNow;
+        return new VoucherPublicDto
+        {
+            Id = o.Id,
+            BuyerName = o.BuyerName ?? "Người mua",
+            PartnerName = o.PartnerName ?? "Người ấy",
+            VenueName = o.VenueName,
+            ComboTitle = o.ComboTitle,
+            AmountVnd = o.AmountVnd,
+            VoucherCode = o.VoucherCode,
+            Status = o.Status,
+            CreatedAt = o.CreatedAt,
+            ExpiresAt = o.ExpiresAt,
+            RedeemedAt = o.RedeemedAt,
+            IsExpired = expired,
+            CanRedeem = o.Status == DatePassStatus.Paid && !expired,
+        };
+    }
 }

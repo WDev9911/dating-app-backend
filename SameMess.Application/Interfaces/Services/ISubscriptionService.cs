@@ -26,6 +26,6 @@ public interface ISubscriptionService
     /// <summary>Tạo đơn mua gói qua PayOS + trả về link/QR VietQR.</summary>
     Task<PayOsCreateResultDto> CreatePayOsOrderAsync(Guid userId, string planCode);
 
-    /// <summary>Xử lý webhook PayOS (server→server): verify chữ ký + kích hoạt gói (idempotent).</summary>
-    Task<bool> HandlePayOsWebhookAsync(string rawJsonBody);
+    /// <summary>Webhook PayOS đã verify → nếu là đơn mua gói thì đánh dấu Paid + kích hoạt (idempotent). Trả true nếu khớp đơn.</summary>
+    Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult webhook);
 }

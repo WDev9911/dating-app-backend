@@ -27,6 +27,9 @@ public class DatePassOrderRepository : BaseRepository<DatePassOrder>, IDatePassO
     public async Task<DatePassOrder?> GetByVoucherCodeAsync(string voucherCode) =>
         await _dbSet.FirstOrDefaultAsync(o => o.VoucherCode == voucherCode);
 
+    public async Task<DatePassOrder?> GetByPayOsOrderCodeAsync(long payOsOrderCode) =>
+        await _dbSet.FirstOrDefaultAsync(o => o.PayOsOrderCode == payOsOrderCode);
+
     public async Task<List<DatePassOrder>> GetAllOrdersAsync() =>
         await _dbSet.AsNoTracking().OrderByDescending(o => o.CreatedAt).ToListAsync();
 }

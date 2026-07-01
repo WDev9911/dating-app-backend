@@ -18,9 +18,15 @@ public class DatePassOrder
     public string VenueName { get; set; } = null!;
     public string ComboTitle { get; set; } = null!;
 
+    // Snapshot tên 2 người trong cặp (để trang voucher công khai hiển thị đủ, không cần truy vấn user)
+    public string? BuyerName { get; set; }
+    public string? PartnerName { get; set; }
+    public Guid? PartnerId { get; set; }      // user còn lại trong cặp (để gửi thông báo)
+
     public int AmountVnd { get; set; }       // số tiền đã trả (SalePrice)
     public int CommissionVnd { get; set; }   // hoa hồng app thu
     public string VoucherCode { get; set; } = null!;
+    public long? PayOsOrderCode { get; set; } // orderCode PayOS (đối chiếu webhook thanh toán thật)
     public string? Email { get; set; }        // email người mua nhận voucher
     public string? PartnerEmail { get; set; } // email người kia (cùng mã voucher)
 

@@ -1,3 +1,4 @@
+using SameMess.Application.DTOs.Billing;
 using SameMess.Application.DTOs.DatePass;
 
 namespace SameMess.Application.Interfaces.Services;
@@ -11,6 +12,18 @@ public interface IDatePassService
     Task<DatePassOrderDto> RedeemAsync(Guid userId, Guid orderId);
     Task<List<DatePassOrderDto>> GetMyOrdersAsync(Guid userId);
     Task<DatePassRevenueDto> GetRevenueAsync();
+
+    /// <summary>Tạo đơn ưu đãi + link thanh toán PayOS thật (VietQR).</summary>
+    Task<PayOsCreateResultDto> CreatePayOsOrderAsync(Guid userId, CreateDatePassOrderDto dto);
+
+    /// <summary>Webhook PayOS đã verify → nếu là đơn ưu đãi thì đánh dấu Paid + gửi voucher. Trả true nếu khớp đơn.</summary>
+    Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult webhook);
+
+    /// <summary>[Công khai] Thông tin voucher để quán quét QR xem (không cần đăng nhập).</summary>
+    Task<VoucherPublicDto> GetVoucherAsync(Guid orderId);
+
+    /// <summary>[Công khai] Quán xác nhận đã sử dụng voucher (không cần đăng nhập).</summary>
+    Task<VoucherPublicDto> RedeemVoucherPublicAsync(Guid orderId);
 
     // Admin
     Task<List<VenueComboDto>> AdminListCombosAsync();

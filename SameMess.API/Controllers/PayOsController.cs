@@ -8,9 +8,18 @@ namespace SameMess.API.Controllers;
 public class PayOsController : ApiControllerBase
 {
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IDatePassService _datePassService;
+    private readonly IPayOsGateway _payos;
 
-    public PayOsController(ISubscriptionService subscriptionService)
-        => _subscriptionService = subscriptionService;
+    public PayOsController(
+        ISubscriptionService subscriptionService,
+        IDatePassService datePassService,
+        IPayOsGateway payos)
+    {
+        _subscriptionService = subscriptionService;
+        _datePassService = datePassService;
+        _payos = payos;
+    }
 
     public record CreatePayOsDto(string PlanCode);
 
@@ -24,7 +33,8 @@ public class PayOsController : ApiControllerBase
     }
 
     /// <summary>
-    /// Webhook PayOS (server→server). PayOS POST JSON kèm chữ ký; verify + kích hoạt gói (idempotent).
+    /// Webhook PayOS (server→server) dùng CHUNG cho mọi loại đơn (mua gói + ưu đãi Date Pass).
+    /// Verify chữ ký 1 lần rồi định tuyến: thử đơn mua gói trước, nếu không khớp thì thử đơn ưu đãi.
     /// Luôn trả 200 để PayOS không retry vô hạn; chỉ báo lỗi khi chữ ký sai.
     /// </summary>
     [AllowAnonymous]
@@ -34,8 +44,15 @@ public class PayOsController : ApiControllerBase
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
 
-        var ok = await _subscriptionService.HandlePayOsWebhookAsync(body);
-        if (!ok) return BadRequest(new { success = false, message = "Invalid signature" });
+        var v = _payos.VerifyWebhook(body);
+        if (!v.SignatureValid)
+            return BadRequest(new { success = false, message = "Invalid signature" });
+
+        // Thử khớp đơn mua gói; nếu không phải thì thử đơn ưu đãi Date Pass.
+        var handled = await _subscriptionService.TryHandlePayOsWebhookAsync(v);
+        if (!handled)
+            await _datePassService.TryHandlePayOsWebhookAsync(v);
+
         return Ok(new { success = true });
     }
 }

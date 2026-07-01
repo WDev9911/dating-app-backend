@@ -24,11 +24,18 @@ public class PayOsGateway : IPayOsGateway
         _s = settings.Value;
     }
 
-    public async Task<PayOsCreateResultDto> CreatePaymentAsync(long orderCode, int amountVnd, string description)
+    public string FrontendBaseUrl => _s.FrontendBaseUrl.TrimEnd('/');
+
+    public async Task<PayOsCreateResultDto> CreatePaymentAsync(
+        long orderCode, int amountVnd, string description,
+        string? returnUrl = null, string? cancelUrl = null)
     {
+        var ret = string.IsNullOrWhiteSpace(returnUrl) ? _s.ReturnUrl : returnUrl;
+        var can = string.IsNullOrWhiteSpace(cancelUrl) ? _s.CancelUrl : cancelUrl;
+
         // Chữ ký create: đúng thứ tự a→z: amount, cancelUrl, description, orderCode, returnUrl
         var signData =
-            $"amount={amountVnd}&cancelUrl={_s.CancelUrl}&description={description}&orderCode={orderCode}&returnUrl={_s.ReturnUrl}";
+            $"amount={amountVnd}&cancelUrl={can}&description={description}&orderCode={orderCode}&returnUrl={ret}";
         var signature = HmacSha256(signData, _s.ChecksumKey);
 
         var body = new
@@ -36,8 +43,8 @@ public class PayOsGateway : IPayOsGateway
             orderCode,
             amount = amountVnd,
             description,
-            cancelUrl = _s.CancelUrl,
-            returnUrl = _s.ReturnUrl,
+            cancelUrl = can,
+            returnUrl = ret,
             signature,
         };
 

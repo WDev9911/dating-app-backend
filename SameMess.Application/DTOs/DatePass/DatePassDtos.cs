@@ -64,6 +64,27 @@ public class DatePassOrderDto
     public DateTime? RedeemedAt { get; set; }
 }
 
+/// <summary>
+/// Thông tin voucher hiển thị ở TRANG CÔNG KHAI (quán quét QR mở ra) — không cần đăng nhập.
+/// Chứa đủ dữ liệu để quán xác nhận buổi hẹn.
+/// </summary>
+public class VoucherPublicDto
+{
+    public Guid Id { get; set; }
+    public string BuyerName { get; set; } = null!;
+    public string PartnerName { get; set; } = null!;
+    public string VenueName { get; set; } = null!;
+    public string ComboTitle { get; set; } = null!;
+    public int AmountVnd { get; set; }
+    public string VoucherCode { get; set; } = null!;
+    public string Status { get; set; } = null!;   // Pending / Paid / Redeemed / Cancelled
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? RedeemedAt { get; set; }
+    public bool IsExpired { get; set; }            // quá hạn dùng?
+    public bool CanRedeem { get; set; }            // đủ điều kiện để quán bấm "đã sử dụng"?
+}
+
 /// <summary>Số liệu doanh thu (dashboard demo).</summary>
 public class DatePassRevenueDto
 {

@@ -188,13 +188,10 @@ public class SubscriptionService : ISubscriptionService
         return result;
     }
 
-    public async Task<bool> HandlePayOsWebhookAsync(string rawJsonBody)
+    public async Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult v)
     {
-        var v = _payos.VerifyWebhook(rawJsonBody);
-        if (!v.SignatureValid) return false;
-
         var order = await _orderRepository.GetByTxnRefAsync(v.OrderCode.ToString(CultureInfo.InvariantCulture));
-        if (order is null) return true; // không phải đơn của mình -> vẫn ack 200
+        if (order is null) return false; // không phải đơn mua gói
 
         if (v.Success
             && order.Status != PaymentStatus.Paid

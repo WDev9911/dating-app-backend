@@ -27,10 +27,27 @@ public class DatePassController : ApiControllerBase
     public async Task<IActionResult> CreateOrder([FromBody] CreateDatePassOrderDto dto)
         => Ok(await _service.CreateOrderAsync(CurrentUserId, dto));
 
+    /// <summary>Tạo đơn + thanh toán THẬT qua PayOS → trả checkoutUrl (VietQR) để chuyển hướng.</summary>
+    [HttpPost("payos")]
+    public async Task<IActionResult> CreatePayOsOrder([FromBody] CreateDatePassOrderDto dto)
+        => Ok(await _service.CreatePayOsOrderAsync(CurrentUserId, dto));
+
     /// <summary>Thanh toán (mock) → phát voucher + gửi email.</summary>
     [HttpPost("order/{orderId:guid}/confirm")]
     public async Task<IActionResult> Confirm(Guid orderId)
         => Ok(await _service.ConfirmAsync(CurrentUserId, orderId));
+
+    /// <summary>[Công khai] Thông tin voucher để quán quét QR xem (không cần đăng nhập).</summary>
+    [HttpGet("voucher/{orderId:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetVoucher(Guid orderId)
+        => Ok(await _service.GetVoucherAsync(orderId));
+
+    /// <summary>[Công khai] Quán xác nhận voucher đã sử dụng (không cần đăng nhập).</summary>
+    [HttpPost("voucher/{orderId:guid}/redeem")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RedeemVoucherPublic(Guid orderId)
+        => Ok(await _service.RedeemVoucherPublicAsync(orderId));
 
     /// <summary>Quán quét QR xác nhận đã sử dụng.</summary>
     [HttpPost("order/{orderId:guid}/redeem")]

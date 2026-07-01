@@ -38,6 +38,8 @@ public class DatePassOrderConfiguration : IEntityTypeConfiguration<DatePassOrder
 
         builder.Property(o => o.VenueName).IsRequired().HasMaxLength(200);
         builder.Property(o => o.ComboTitle).IsRequired().HasMaxLength(150);
+        builder.Property(o => o.BuyerName).HasMaxLength(100);
+        builder.Property(o => o.PartnerName).HasMaxLength(100);
         builder.Property(o => o.VoucherCode).IsRequired().HasMaxLength(40);
         builder.Property(o => o.Email).HasMaxLength(256);
         builder.Property(o => o.PartnerEmail).HasMaxLength(256);
@@ -46,5 +48,6 @@ public class DatePassOrderConfiguration : IEntityTypeConfiguration<DatePassOrder
 
         builder.HasIndex(o => o.VoucherCode).IsUnique();
         builder.HasIndex(o => o.MatchId);
+        builder.HasIndex(o => o.PayOsOrderCode);
     }
 }
