@@ -15,17 +15,20 @@ public class SubscriptionService : ISubscriptionService
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IPaymentOrderRepository _orderRepository;
     private readonly IPaymentGateway _gateway;
+    private readonly IPayOsGateway _payos;
 
     public SubscriptionService(
         IPlanRepository planRepository,
         ISubscriptionRepository subscriptionRepository,
         IPaymentOrderRepository orderRepository,
-        IPaymentGateway gateway)
+        IPaymentGateway gateway,
+        IPayOsGateway payos)
     {
         _planRepository = planRepository;
         _subscriptionRepository = subscriptionRepository;
         _orderRepository = orderRepository;
         _gateway = gateway;
+        _payos = payos;
     }
 
     public async Task<List<PlanDto>> GetPlansAsync()
@@ -153,6 +156,53 @@ public class SubscriptionService : ISubscriptionService
             await MarkPaidAndActivateAsync(order, "MOCK", "00");
 
         return await GetMySubscriptionAsync(userId);
+    }
+
+    public async Task<PayOsCreateResultDto> CreatePayOsOrderAsync(Guid userId, string planCode)
+    {
+        if (!PlanCode.IsValidPaid(planCode))
+            throw new BadRequestException("Chỉ mua được gói Plus hoặc Gold.");
+
+        var plan = await _planRepository.GetByCodeAsync(planCode);
+        if (plan is null || !plan.IsActive)
+            throw new NotFoundException("Plan", planCode);
+
+        // orderCode: số nguyên dương duy nhất (giây epoch * 1000 + random) — PayOS yêu cầu dạng number
+        var orderCode = DateTimeOffset.UtcNow.ToUnixTimeSeconds() * 1000 + Random.Shared.Next(0, 1000);
+
+        var order = new PaymentOrder
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TxnRef = orderCode.ToString(CultureInfo.InvariantCulture),
+            PlanCode = plan.Code,
+            AmountVnd = plan.PriceVnd,
+            Status = PaymentStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await _orderRepository.AddAsync(order);
+        await _orderRepository.SaveChangesAsync();
+
+        // description ≤ 25 ký tự
+        var result = await _payos.CreatePaymentAsync(orderCode, plan.PriceVnd, $"SameMess goi {plan.Code}");
+        return result;
+    }
+
+    public async Task<bool> HandlePayOsWebhookAsync(string rawJsonBody)
+    {
+        var v = _payos.VerifyWebhook(rawJsonBody);
+        if (!v.SignatureValid) return false;
+
+        var order = await _orderRepository.GetByTxnRefAsync(v.OrderCode.ToString(CultureInfo.InvariantCulture));
+        if (order is null) return true; // không phải đơn của mình -> vẫn ack 200
+
+        if (v.Success
+            && order.Status != PaymentStatus.Paid
+            && order.AmountVnd == v.AmountVnd)
+        {
+            await MarkPaidAndActivateAsync(order, $"PAYOS:{v.OrderCode}", "00");
+        }
+        return true;
     }
 
     /// <summary>Đánh dấu đơn đã trả + tạo/gia hạn thuê bao (gia hạn nối từ mốc còn lại nếu chưa hết hạn).</summary>

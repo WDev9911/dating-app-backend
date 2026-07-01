@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
         services.Configure<AiSettings>(configuration.GetSection("Ai"));
         services.Configure<VNPaySettings>(configuration.GetSection("VNPay"));
+        services.Configure<PayOsSettings>(configuration.GetSection("PayOS"));
         services.Configure<WebPushSettings>(configuration.GetSection("WebPush"));
 
         services.AddDbContext<AppDbContext>(options =>
@@ -78,6 +79,7 @@ public static class DependencyInjection
         else
             services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IPaymentGateway, VNPayGateway>();
+        services.AddHttpClient<IPayOsGateway, PayOsGateway>(c => c.Timeout = TimeSpan.FromSeconds(20));
         services.AddScoped<IFaceVerificationService, StubFaceVerificationService>();
         services.AddScoped<IPushSender, LogPushSender>();
 

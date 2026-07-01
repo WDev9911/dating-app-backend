@@ -22,4 +22,10 @@ public interface ISubscriptionService
 
     /// <summary>[DEV] Giả lập thanh toán thành công cho một đơn (test khi IPN không tới được localhost).</summary>
     Task<SubscriptionDto> MockConfirmAsync(Guid userId, string txnRef);
+
+    /// <summary>Tạo đơn mua gói qua PayOS + trả về link/QR VietQR.</summary>
+    Task<PayOsCreateResultDto> CreatePayOsOrderAsync(Guid userId, string planCode);
+
+    /// <summary>Xử lý webhook PayOS (server→server): verify chữ ký + kích hoạt gói (idempotent).</summary>
+    Task<bool> HandlePayOsWebhookAsync(string rawJsonBody);
 }
