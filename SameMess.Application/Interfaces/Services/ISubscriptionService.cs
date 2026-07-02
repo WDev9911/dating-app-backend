@@ -28,4 +28,7 @@ public interface ISubscriptionService
 
     /// <summary>Webhook PayOS đã verify → nếu là đơn mua gói thì đánh dấu Paid + kích hoạt (idempotent). Trả true nếu khớp đơn.</summary>
     Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult webhook);
+
+    /// <summary>Hỏi PayOS trạng thái đơn theo orderCode rồi chốt Paid (fallback khi webhook không tới). Trả true nếu là đơn mua gói.</summary>
+    Task<bool> VerifyPayOsPaymentAsync(long orderCode);
 }

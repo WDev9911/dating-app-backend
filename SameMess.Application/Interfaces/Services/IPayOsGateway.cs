@@ -19,4 +19,7 @@ public interface IPayOsGateway
 
     /// <summary>Verify chữ ký + parse dữ liệu từ body webhook thô (JSON).</summary>
     PayOsWebhookResult VerifyWebhook(string rawJsonBody);
+
+    /// <summary>Hỏi trực tiếp PayOS trạng thái đơn theo orderCode (chốt Paid khi user quay về, không cần webhook).</summary>
+    Task<PayOsStatusResult> GetPaymentStatusAsync(long orderCode);
 }

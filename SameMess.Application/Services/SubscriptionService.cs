@@ -202,6 +202,20 @@ public class SubscriptionService : ISubscriptionService
         return true;
     }
 
+    public async Task<bool> VerifyPayOsPaymentAsync(long orderCode)
+    {
+        var order = await _orderRepository.GetByTxnRefAsync(orderCode.ToString(CultureInfo.InvariantCulture));
+        if (order is null) return false; // không phải đơn mua gói
+
+        if (order.Status != PaymentStatus.Paid)
+        {
+            var status = await _payos.GetPaymentStatusAsync(orderCode);
+            if (status.Paid && (status.AmountVnd == 0 || status.AmountVnd == order.AmountVnd))
+                await MarkPaidAndActivateAsync(order, $"PAYOS:{orderCode}", "00");
+        }
+        return true;
+    }
+
     /// <summary>Đánh dấu đơn đã trả + tạo/gia hạn thuê bao (gia hạn nối từ mốc còn lại nếu chưa hết hạn).</summary>
     private async Task MarkPaidAndActivateAsync(PaymentOrder order, string? transactionNo, string responseCode)
     {

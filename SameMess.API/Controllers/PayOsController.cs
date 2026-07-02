@@ -22,6 +22,7 @@ public class PayOsController : ApiControllerBase
     }
 
     public record CreatePayOsDto(string PlanCode);
+    public record VerifyPayOsDto(long OrderCode);
 
     /// <summary>Tạo đơn mua gói qua PayOS → trả checkoutUrl + QR để frontend hiển thị/chuyển hướng.</summary>
     [Authorize]
@@ -30,6 +31,19 @@ public class PayOsController : ApiControllerBase
     {
         var result = await _subscriptionService.CreatePayOsOrderAsync(CurrentUserId, dto.PlanCode);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Chốt thanh toán khi user quay về từ PayOS: hỏi thẳng PayOS trạng thái đơn rồi kích hoạt.
+    /// Fallback cho webhook (Render Free hay ngủ → webhook có thể trượt). Thử đơn mua gói trước, rồi ưu đãi.
+    /// </summary>
+    [Authorize]
+    [HttpPost("verify")]
+    public async Task<IActionResult> Verify([FromBody] VerifyPayOsDto dto)
+    {
+        var handled = await _subscriptionService.VerifyPayOsPaymentAsync(dto.OrderCode);
+        if (!handled) await _datePassService.VerifyPayOsPaymentAsync(dto.OrderCode);
+        return Ok(new { ok = true });
     }
 
     /// <summary>

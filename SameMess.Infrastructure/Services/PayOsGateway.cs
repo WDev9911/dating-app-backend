@@ -77,6 +77,34 @@ public class PayOsGateway : IPayOsGateway
         };
     }
 
+    public async Task<PayOsStatusResult> GetPaymentStatusAsync(long orderCode)
+    {
+        var result = new PayOsStatusResult { OrderCode = orderCode };
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"{_s.BaseUrl.TrimEnd('/')}/v2/payment-requests/{orderCode}");
+        req.Headers.Add("x-client-id", _s.ClientId);
+        req.Headers.Add("x-api-key", _s.ApiKey);
+
+        try
+        {
+            var resp = await _http.SendAsync(req);
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+            {
+                var status = data.TryGetProperty("status", out var st) ? st.GetString() : null;
+                result.Paid = string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase);
+                // PayOS: amountPaid là số đã trả; fallback về amount
+                if (data.TryGetProperty("amountPaid", out var ap) && ap.TryGetInt32(out var apv) && apv > 0)
+                    result.AmountVnd = apv;
+                else if (data.TryGetProperty("amount", out var am) && am.TryGetInt32(out var amv))
+                    result.AmountVnd = amv;
+            }
+        }
+        catch { /* lỗi mạng/parse -> coi như chưa xác nhận được, giữ Paid=false */ }
+        return result;
+    }
+
     public PayOsWebhookResult VerifyWebhook(string rawJsonBody)
     {
         var result = new PayOsWebhookResult();

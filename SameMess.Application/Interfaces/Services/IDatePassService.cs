@@ -19,6 +19,9 @@ public interface IDatePassService
     /// <summary>Webhook PayOS đã verify → nếu là đơn ưu đãi thì đánh dấu Paid + gửi voucher. Trả true nếu khớp đơn.</summary>
     Task<bool> TryHandlePayOsWebhookAsync(PayOsWebhookResult webhook);
 
+    /// <summary>Hỏi PayOS trạng thái đơn theo orderCode rồi chốt Paid + gửi voucher (fallback khi webhook không tới). Trả true nếu là đơn ưu đãi.</summary>
+    Task<bool> VerifyPayOsPaymentAsync(long orderCode);
+
     /// <summary>[Công khai] Thông tin voucher để quán quét QR xem (không cần đăng nhập).</summary>
     Task<VoucherPublicDto> GetVoucherAsync(Guid orderId);
 

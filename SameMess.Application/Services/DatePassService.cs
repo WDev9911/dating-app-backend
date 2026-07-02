@@ -120,6 +120,20 @@ public class DatePassService : IDatePassService
         return true;
     }
 
+    public async Task<bool> VerifyPayOsPaymentAsync(long orderCode)
+    {
+        var order = await _orderRepository.GetByPayOsOrderCodeAsync(orderCode);
+        if (order is null) return false; // không phải đơn ưu đãi
+
+        if (order.Status == DatePassStatus.Pending)
+        {
+            var status = await _payos.GetPaymentStatusAsync(orderCode);
+            if (status.Paid && (status.AmountVnd == 0 || status.AmountVnd == order.AmountVnd))
+                await PayAndDispatchAsync(order);
+        }
+        return true;
+    }
+
     /// <summary>Quán quét QR (trong app) xác nhận đã sử dụng — dành cho user đã đăng nhập.</summary>
     public async Task<DatePassOrderDto> RedeemAsync(Guid userId, Guid orderId)
     {
