@@ -1,6 +1,7 @@
 using SameMess.Application.DTOs.Admin;
 using SameMess.Application.Interfaces.Services;
 using SameMess.Domain.Entities;
+using SameMess.Domain.Enums;
 using SameMess.Domain.Exceptions;
 using SameMess.Domain.Interfaces.Repositories;
 
@@ -12,17 +13,20 @@ public class AdminPlanService : IAdminPlanService
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IUserRepository _userRepository;
     private readonly IAuditService _auditService;
+    private readonly INotificationService _notificationService;
 
     public AdminPlanService(
         IPlanRepository planRepository,
         ISubscriptionRepository subscriptionRepository,
         IUserRepository userRepository,
-        IAuditService auditService)
+        IAuditService auditService,
+        INotificationService notificationService)
     {
         _planRepository = planRepository;
         _subscriptionRepository = subscriptionRepository;
         _userRepository = userRepository;
         _auditService = auditService;
+        _notificationService = notificationService;
     }
 
     public async Task<List<AdminPlanDto>> ListAsync()
@@ -91,6 +95,61 @@ public class AdminPlanService : IAdminPlanService
             ExpiresAt = s.ExpiresAt,
             IsActive = s.ExpiresAt > now,
         }).ToList();
+    }
+
+    public async Task<SubscriberDto> GrantPlanAsync(Guid adminId, GrantPlanPayloadDto dto)
+    {
+        if (!PlanCode.IsValidPaid(dto.PlanCode))
+            throw new BadRequestException("Chỉ tặng được gói Plus hoặc Gold.");
+
+        var plan = await _planRepository.GetByCodeAsync(dto.PlanCode);
+        if (plan is null || !plan.IsActive)
+            throw new NotFoundException("Plan", dto.PlanCode);
+
+        var user = await _userRepository.GetWithProfileAsync(dto.UserId)
+            ?? throw new NotFoundException("User", dto.UserId);
+
+        var now = DateTime.UtcNow;
+        var sub = await _subscriptionRepository.GetByUserAsync(dto.UserId);
+        if (sub is null)
+        {
+            sub = new Subscription
+            {
+                Id = Guid.NewGuid(),
+                UserId = dto.UserId,
+                PlanCode = plan.Code,
+                StartAt = now,
+                ExpiresAt = now.AddDays(plan.DurationDays),
+                UpdatedAt = now,
+            };
+            await _subscriptionRepository.AddAsync(sub);
+        }
+        else
+        {
+            var basis = sub.ExpiresAt > now ? sub.ExpiresAt : now; // còn hạn thì nối tiếp
+            sub.PlanCode = plan.Code;
+            sub.ExpiresAt = basis.AddDays(plan.DurationDays);
+            sub.UpdatedAt = now;
+        }
+        await _subscriptionRepository.SaveChangesAsync();
+        await _auditService.LogAsync(adminId, "plan.grant", "Subscription", dto.UserId, plan.Code);
+
+        await _notificationService.NotifyAsync(
+            dto.UserId,
+            NotificationType.PlanGranted,
+            "Quà tặng từ SameMess 🎁",
+            $"Cảm ơn bạn đã trải nghiệm SameMess! Chúng tôi xin tặng bạn gói {plan.Name} để trải nghiệm các tính năng cao cấp.",
+            plan.Code);
+
+        return new SubscriberDto
+        {
+            UserId = dto.UserId,
+            Email = user.Email,
+            DisplayName = user.Profile?.DisplayName,
+            PlanCode = sub.PlanCode,
+            ExpiresAt = sub.ExpiresAt,
+            IsActive = true,
+        };
     }
 
     private static AdminPlanDto ToDto(Plan p) => new()

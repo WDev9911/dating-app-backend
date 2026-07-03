@@ -28,3 +28,9 @@ public class SubscriberDto
     public DateTime ExpiresAt { get; set; }
     public bool IsActive { get; set; }
 }
+
+public class GrantPlanPayloadDto
+{
+    public Guid UserId { get; set; }
+    public string PlanCode { get; set; } = null!;
+}

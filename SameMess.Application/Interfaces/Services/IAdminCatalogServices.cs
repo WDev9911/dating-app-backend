@@ -20,6 +20,9 @@ public interface IAdminPlanService
     Task<AdminPlanDto> UpdateAsync(Guid adminId, Guid id, PlanPayloadDto dto);
     Task DeleteAsync(Guid adminId, Guid id);
     Task<List<SubscriberDto>> GetSubscribersAsync(string? planCode, string? status);
+
+    /// <summary>Tặng miễn phí một gói premium cho user (không qua thanh toán) — nối hạn nếu user đang có gói.</summary>
+    Task<SubscriberDto> GrantPlanAsync(Guid adminId, GrantPlanPayloadDto dto);
 }
 
 public interface IAdminInterestService

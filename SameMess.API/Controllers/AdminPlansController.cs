@@ -36,4 +36,9 @@ public class AdminPlansController : ApiControllerBase
     [HttpGet("~/api/admin/subscribers")]
     public async Task<IActionResult> Subscribers([FromQuery] string? planId, [FromQuery] string? status)
         => Ok(await _service.GetSubscribersAsync(planId, status));
+
+    /// <summary>Tặng miễn phí một gói premium cho user (không cần thanh toán) — user nhận thông báo + popup cảm ơn.</summary>
+    [HttpPost("grant")]
+    public async Task<IActionResult> Grant([FromBody] GrantPlanPayloadDto dto)
+        => Ok(await _service.GrantPlanAsync(CurrentUserId, dto));
 }
