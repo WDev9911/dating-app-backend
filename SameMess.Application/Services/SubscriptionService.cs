@@ -14,6 +14,7 @@ public class SubscriptionService : ISubscriptionService
     private readonly IPlanRepository _planRepository;
     private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IPaymentOrderRepository _orderRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IPaymentGateway _gateway;
     private readonly IPayOsGateway _payos;
 
@@ -21,14 +22,23 @@ public class SubscriptionService : ISubscriptionService
         IPlanRepository planRepository,
         ISubscriptionRepository subscriptionRepository,
         IPaymentOrderRepository orderRepository,
+        IUserRepository userRepository,
         IPaymentGateway gateway,
         IPayOsGateway payos)
     {
         _planRepository = planRepository;
         _subscriptionRepository = subscriptionRepository;
         _orderRepository = orderRepository;
+        _userRepository = userRepository;
         _gateway = gateway;
         _payos = payos;
+    }
+
+    /// <summary>Admin mặc nhiên hưởng quyền lợi Gold — không cần bản ghi Subscription hay thanh toán.</summary>
+    private async Task<bool> IsAdminAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        return user?.Role == UserRole.Admin;
     }
 
     public async Task<List<PlanDto>> GetPlansAsync()
@@ -45,6 +55,17 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<SubscriptionDto> GetMySubscriptionAsync(Guid userId)
     {
+        if (await IsAdminAsync(userId))
+        {
+            return new SubscriptionDto
+            {
+                PlanCode = PlanCode.Gold,
+                IsActive = true,
+                ExpiresAt = null, // vĩnh viễn — không có hạn
+                Entitlements = ToDto(Entitlements.For(PlanCode.Gold)),
+            };
+        }
+
         var sub = await _subscriptionRepository.GetByUserAsync(userId);
         var active = sub is not null && sub.ExpiresAt > DateTime.UtcNow;
         var planCode = active ? sub!.PlanCode : PlanCode.Free;
@@ -61,6 +82,9 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<PlanEntitlements> GetEntitlementsAsync(Guid userId)
     {
+        if (await IsAdminAsync(userId))
+            return Entitlements.For(PlanCode.Gold);
+
         var sub = await _subscriptionRepository.GetByUserAsync(userId);
         var planCode = sub is not null && sub.ExpiresAt > DateTime.UtcNow ? sub.PlanCode : PlanCode.Free;
         return Entitlements.For(planCode);
