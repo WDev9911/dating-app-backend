@@ -49,14 +49,19 @@ public class DiscoveryService : IDiscoveryService
             ?? throw new NotFoundException("User", userId);
 
         var profile = me.Profile;
-        if (profile is null
+        var isAdminViewer = me.Role == UserRole.Admin;
+
+        // Admin không bị bắt hoàn thiện hồ sơ như user thường (họ có thể chưa có info/location/ảnh)
+        if (!isAdminViewer && (profile is null
             || !profile.IsProfileCompleted
             || profile.Latitude is null
-            || profile.Longitude is null)
+            || profile.Longitude is null))
         {
             throw new ForbiddenException(
                 "Please complete your profile (info, location and at least one photo) before using Discovery.");
         }
+        if (profile is null)
+            return new List<DiscoveryProfileDto>(); // admin chưa có hồ sơ nào — chưa có gì để tính khoảng cách/tuổi
 
         // Preferences: nếu chưa có thì dùng mặc định rộng
         var interestedIn = me.Preference?.InterestedInGender ?? GenderPreference.Everyone;
@@ -64,8 +69,10 @@ public class DiscoveryService : IDiscoveryService
         var maxAge = me.Preference?.MaxAge ?? 99;
         var maxDistanceKm = me.Preference?.MaxDistanceKm ?? 50;
 
-        var myLat = profile.Latitude.Value;
-        var myLon = profile.Longitude.Value;
+        // Admin có thể chưa set vị trí — khi đó bỏ qua lọc khoảng cách thay vì crash
+        var hasMyLocation = profile.Latitude is not null && profile.Longitude is not null;
+        var myLat = profile.Latitude ?? 0;
+        var myLon = profile.Longitude ?? 0;
 
         // Khoảng tuổi -> khoảng ngày sinh (đệm thêm 1 năm để lọc thô; lọc tinh lại theo tuổi ở dưới)
         var now = DateTime.UtcNow;
@@ -73,8 +80,9 @@ public class DiscoveryService : IDiscoveryService
         var maxBirthDate = today.AddYears(-minAge);       // sinh muộn nhất => trẻ nhất đúng minAge
         var minBirthDate = today.AddYears(-maxAge - 1);   // sinh sớm nhất (có đệm)
 
-        var (minLat, maxLat, minLon, maxLon) =
-            GeoCalculator.BoundingBox(myLat, myLon, maxDistanceKm);
+        var (minLat, maxLat, minLon, maxLon) = hasMyLocation
+            ? GeoCalculator.BoundingBox(myLat, myLon, maxDistanceKm)
+            : (-90.0, 90.0, -180.0, 180.0); // không có vị trí -> không lọc theo khoảng cách (toàn cầu)
 
         var requiredGender = interestedIn == GenderPreference.Everyone ? null : interestedIn;
 
@@ -109,15 +117,16 @@ public class DiscoveryService : IDiscoveryService
             if (age is null || age < minAge || age > maxAge)
                 continue;
 
-            // Lọc tinh khoảng cách: từ hình vuông -> hình tròn chính xác
-            var distance = GeoCalculator.DistanceKm(
-                myLat, myLon, candidate.Latitude!.Value, candidate.Longitude!.Value);
-            if (distance > maxDistanceKm)
+            // Lọc tinh khoảng cách: từ hình vuông -> hình tròn chính xác (bỏ qua nếu tôi chưa có vị trí)
+            var distance = hasMyLocation
+                ? GeoCalculator.DistanceKm(myLat, myLon, candidate.Latitude!.Value, candidate.Longitude!.Value)
+                : 0;
+            if (hasMyLocation && distance > maxDistanceKm)
                 continue;
 
             // Lọc 2 chiều khoảng cách: tôi cũng phải nằm trong bán kính họ chấp nhận
             var theirMaxDistance = candidate.User?.Preference?.MaxDistanceKm ?? 50;
-            if (distance > theirMaxDistance)
+            if (hasMyLocation && distance > theirMaxDistance)
                 continue;
 
             var isBoosted = candidate.BoostedUntil.HasValue && candidate.BoostedUntil.Value > now;

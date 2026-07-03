@@ -53,7 +53,6 @@ public class ProfileService : IProfileService
         dto.Preference = null;
         dto.Latitude = null;
         dto.Longitude = null;
-        dto.IsAdmin = user.Role == UserRole.Admin;
         return dto;
     }
 
