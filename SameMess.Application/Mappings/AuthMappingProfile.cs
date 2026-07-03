@@ -12,6 +12,8 @@ public class AuthMappingProfile : Profile
             .ForMember(dest => dest.DisplayName,
                 opt => opt.MapFrom(src => src.Profile != null ? src.Profile.DisplayName : string.Empty))
             .ForMember(dest => dest.AvatarUrl,
-                opt => opt.MapFrom(src => src.Profile != null ? src.Profile.AvatarUrl : null));
+                opt => opt.MapFrom(src => src.Profile != null ? src.Profile.AvatarUrl : null))
+            .ForMember(dest => dest.AvatarFrame,
+                opt => opt.MapFrom(src => src.Profile != null ? src.Profile.AvatarFrame : null));
     }
 }

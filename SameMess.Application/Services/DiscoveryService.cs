@@ -124,13 +124,36 @@ public class DiscoveryService : IDiscoveryService
             passed.Add((candidate, age.Value, distance, isBoosted));
         }
 
+        // Admin luôn ghim đầu feed — bất kể khoảng cách/tuổi/giới tính, chỉ loại nếu đã bị chặn/đã match
+        var admins = await _userRepository.GetAdminsWithProfileAsync();
+        var matchedSet = matchedPartners.ToHashSet();
+        var blockedSet = blockedRelated.ToHashSet();
+        var pinnedAdmins = admins
+            .Where(a => a.Id != userId)
+            .Where(a => a.Profile is not null && !string.IsNullOrWhiteSpace(a.Profile.DisplayName))
+            .Where(a => !blockedSet.Contains(a.Id) && !matchedSet.Contains(a.Id))
+            .ToList();
+        var adminIds = pinnedAdmins.Select(a => a.Id).ToHashSet();
+        passed.RemoveAll(p => adminIds.Contains(p.Candidate.UserId)); // tránh trùng nếu admin cũng lọt qua bộ lọc thường
+
         // Điểm uy tín theo lô để xếp hạng + gắn badge (fail-safe: lỗi thì coi mọi người là khởi điểm)
         Dictionary<Guid, int> scores;
-        try { scores = await _reputationService.GetScoresAsync(passed.Select(p => p.Candidate.UserId)); }
+        try { scores = await _reputationService.GetScoresAsync(passed.Select(p => p.Candidate.UserId).Concat(adminIds)); }
         catch { scores = new Dictionary<Guid, int>(); }
 
+        var adminDtos = pinnedAdmins.Select(a =>
+        {
+            var adminProfile = a.Profile!;
+            var distance = adminProfile.Latitude is not null && adminProfile.Longitude is not null
+                ? GeoCalculator.DistanceKm(myLat, myLon, adminProfile.Latitude.Value, adminProfile.Longitude.Value)
+                : 0;
+            var age = AgeCalculator.FromDateOfBirth(adminProfile.DateOfBirth) ?? 0;
+            var score = scores.TryGetValue(a.Id, out var s) ? s : ReputationConfig.StartScore;
+            return MapToDto(adminProfile, age, distance, isBoosted: false, ReputationConfig.TierOf(score));
+        });
+
         // Boost lên đầu → rồi uy tín cao hơn → rồi gần hơn
-        return passed
+        var rest = passed
             .Select(p =>
             {
                 var score = scores.TryGetValue(p.Candidate.UserId, out var s) ? s : ReputationConfig.StartScore;
@@ -140,9 +163,10 @@ public class DiscoveryService : IDiscoveryService
             .OrderByDescending(x => x.Dto.IsBoosted)
             .ThenByDescending(x => x.Score)
             .ThenBy(x => x.Dto.DistanceKm)
-            .Take(limit)
-            .Select(x => x.Dto)
-            .ToList();
+            .Select(x => x.Dto);
+
+        // Admin luôn ở đầu, bất kể limit — phần còn lại lấp đầy chỗ trống
+        return adminDtos.Concat(rest).Take(limit).ToList();
     }
 
     private DiscoveryProfileDto MapToDto(UserProfile profile, int age, double distanceKm, bool isBoosted, string reputationTier)
@@ -163,6 +187,8 @@ public class DiscoveryService : IDiscoveryService
             IsBoosted = isBoosted,
             IsPhotoVerified = profile.IsPhotoVerified,
             ReputationTier = reputationTier,
+            IsAdmin = profile.User?.Role == UserRole.Admin,
+            AvatarFrame = profile.AvatarFrame,
             Photos = _mapper.Map<List<PhotoDto>>(photos.OrderBy(p => p.OrderIndex)),
         };
     }

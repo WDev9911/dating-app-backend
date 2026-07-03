@@ -14,6 +14,7 @@ public class UserProfile
     public double? Longitude { get; set; }
     public DateTime? LocationUpdatedAt { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? AvatarFrame { get; set; } // khung hiệu ứng động quanh avatar (Fire/Ice/Gold/Electric) — hiện chỉ Admin đổi được
     public string? DatingGoal { get; set; }
     public bool IsProfileCompleted { get; set; }
     public DateTime? BoostedUntil { get; set; }

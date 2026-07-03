@@ -16,4 +16,7 @@ public interface IProfileService
 
     /// <summary>Kích hoạt Boost: đẩy hồ sơ lên đầu feed người khác trong 30 phút. Trả về thời điểm hết hạn.</summary>
     Task<DateTime> BoostAsync(Guid userId);
+
+    /// <summary>Đổi khung hiệu ứng avatar (Fire/Ice/Gold/Electric) — chỉ Admin. null để gỡ khung.</summary>
+    Task<ProfileDto> SetAvatarFrameAsync(Guid userId, string? frame);
 }

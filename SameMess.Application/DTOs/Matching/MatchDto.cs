@@ -9,4 +9,6 @@ public class MatchDto
     public string? AvatarUrl { get; set; }
     public int? Age { get; set; }
     public DateTime MatchedAt { get; set; }
+    public bool IsAdmin { get; set; }
+    public string? AvatarFrame { get; set; }
 }

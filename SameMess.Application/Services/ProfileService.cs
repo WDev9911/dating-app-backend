@@ -53,6 +53,7 @@ public class ProfileService : IProfileService
         dto.Preference = null;
         dto.Latitude = null;
         dto.Longitude = null;
+        dto.IsAdmin = user.Role == UserRole.Admin;
         return dto;
     }
 
@@ -206,6 +207,21 @@ public class ProfileService : IProfileService
         user.Profile.UpdatedAt = DateTime.UtcNow;
         await _userRepository.SaveChangesAsync();
         return until;
+    }
+
+    public async Task<ProfileDto> SetAvatarFrameAsync(Guid userId, string? frame)
+    {
+        var user = await LoadUserAsync(userId);
+        if (user.Role != UserRole.Admin)
+            throw new ForbiddenException("Chỉ Admin mới đổi được khung hiệu ứng avatar.");
+        if (!AvatarFrameType.IsValid(frame))
+            throw new BadRequestException("Khung hiệu ứng không hợp lệ.");
+
+        user.Profile!.AvatarFrame = frame;
+        user.Profile.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+
+        return _mapper.Map<ProfileDto>(user);
     }
 
     /// <summary>Ghi nhận thành tựu "hoàn thiện hồ sơ" khi đủ điều kiện (fail-safe, một lần duy nhất).</summary>

@@ -2,6 +2,7 @@ using SameMess.Application.Common;
 using SameMess.Application.DTOs.Matching;
 using SameMess.Application.Interfaces.Services;
 using SameMess.Domain.Entities;
+using SameMess.Domain.Enums;
 using SameMess.Domain.Exceptions;
 using SameMess.Domain.Interfaces.Repositories;
 
@@ -46,6 +47,8 @@ public class MatchService : IMatchService
                 AvatarUrl = AvatarOf(other),
                 Age = AgeCalculator.FromDateOfBirth(other?.Profile?.DateOfBirth),
                 MatchedAt = match.CreatedAt,
+                IsAdmin = other?.Role == UserRole.Admin,
+                AvatarFrame = other?.Profile?.AvatarFrame,
             });
         }
 

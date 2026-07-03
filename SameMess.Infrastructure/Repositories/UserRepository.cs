@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SameMess.Domain.Entities;
+using SameMess.Domain.Enums;
 using SameMess.Domain.Interfaces.Repositories;
 using SameMess.Infrastructure.Data;
 
@@ -44,6 +45,14 @@ public class UserRepository : BaseRepository<User>, IUserRepository
             .Include(u => u.Profile)
             .Include(u => u.Photos.OrderBy(p => p.OrderIndex))
             .Where(u => ids.Contains(u.Id))
+            .ToListAsync();
+
+    /// <summary>Tài khoản Admin có hồ sơ — dùng để ghim lên đầu Discovery bất kể khoảng cách.</summary>
+    public async Task<List<User>> GetAdminsWithProfileAsync() =>
+        await _dbSet
+            .Include(u => u.Profile)
+            .Include(u => u.Photos.OrderBy(p => p.OrderIndex))
+            .Where(u => u.Role == UserRole.Admin)
             .ToListAsync();
 
     public async Task<List<User>> GetPendingFaceVerificationsAsync() =>

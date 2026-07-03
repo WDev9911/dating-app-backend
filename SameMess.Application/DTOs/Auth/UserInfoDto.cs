@@ -10,4 +10,5 @@ public class UserInfoDto
     public string Status { get; set; } = null!;
     public string DisplayName { get; set; } = null!;
     public string? AvatarUrl { get; set; }
+    public string? AvatarFrame { get; set; }
 }

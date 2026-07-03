@@ -27,6 +27,7 @@ public class ProfileMappingProfile : Profile
             .ForMember(d => d.Longitude, o => o.MapFrom(s => s.Profile!.Longitude))
             .ForMember(d => d.DatingGoal, o => o.MapFrom(s => s.Profile!.DatingGoal))
             .ForMember(d => d.AvatarUrl, o => o.MapFrom(s => s.Profile!.AvatarUrl))
+            .ForMember(d => d.AvatarFrame, o => o.MapFrom(s => s.Profile!.AvatarFrame))
             .ForMember(d => d.IsProfileCompleted, o => o.MapFrom(s => s.Profile!.IsProfileCompleted))
             .ForMember(d => d.IsPhotoVerified, o => o.MapFrom(s => s.Profile!.IsPhotoVerified))
             .ForMember(d => d.VerificationStatus, o => o.MapFrom(s => s.Profile!.VerificationStatus))

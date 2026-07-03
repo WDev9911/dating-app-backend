@@ -16,9 +16,11 @@ public class ProfileDto
     public double? Longitude { get; set; }
     public string? DatingGoal { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? AvatarFrame { get; set; }
     public bool IsProfileCompleted { get; set; }
     public bool IsPhotoVerified { get; set; }
     public string VerificationStatus { get; set; } = Domain.Enums.VerificationStatus.None;
+    public bool IsAdmin { get; set; }
     public List<PhotoDto> Photos { get; set; } = new();
     public PreferenceDto? Preference { get; set; }
 }

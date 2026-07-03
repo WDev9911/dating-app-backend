@@ -14,6 +14,8 @@ public class LikedMeProfileDto
     public string? Gender { get; set; }
     public string? Bio { get; set; }
     public bool IsSuperLike { get; set; }
+    public bool IsAdmin { get; set; }
+    public string? AvatarFrame { get; set; }
 
     /// <summary>True nếu ảnh bị khóa do chưa nâng cấp (Free) — backend KHÔNG trả URL ảnh gốc.</summary>
     public bool PhotosLocked { get; set; }

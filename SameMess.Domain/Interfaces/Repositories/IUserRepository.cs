@@ -12,6 +12,7 @@ public interface IUserRepository : IBaseRepository<User>
     Task<User?> GetFullProfileAsync(Guid userId);
     Task<List<User>> GetWithProfileByIdsAsync(IEnumerable<Guid> ids);
     Task<List<User>> GetWithProfileAndPhotosByIdsAsync(IEnumerable<Guid> ids);
+    Task<List<User>> GetAdminsWithProfileAsync();
 
     /// <summary>Hồ sơ đang chờ admin duyệt xác minh khuôn mặt (kèm Profile + Photos).</summary>
     Task<List<User>> GetPendingFaceVerificationsAsync();

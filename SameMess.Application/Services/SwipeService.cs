@@ -233,6 +233,8 @@ public class SwipeService : ISwipeService
                 Gender = user.Profile.Gender,
                 Bio = user.Profile.Bio,
                 IsSuperLike = swipe.Action == SwipeAction.SuperLike,
+                IsAdmin = user.Role == UserRole.Admin,
+                AvatarFrame = user.Profile?.AvatarFrame,
                 PhotosLocked = !revealPhotos,
                 Photos = photos,
             });

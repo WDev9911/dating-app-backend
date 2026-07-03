@@ -5,6 +5,7 @@ using SameMess.API.Extensions;
 using SameMess.Application.DTOs.Profile;
 using SameMess.Application.DTOs.Verification;
 using SameMess.Application.Interfaces.Services;
+using SameMess.Domain.Enums;
 
 namespace SameMess.API.Controllers;
 
@@ -172,4 +173,11 @@ public class ProfileController : ApiControllerBase
         await _profileService.ReorderPhotosAsync(CurrentUserId, dto);
         return NoContent();
     }
+
+    /// <summary>Đổi khung hiệu ứng avatar (Fire/Ice/Gold/Electric) — chỉ Admin. Gửi frame rỗng/null để gỡ khung.</summary>
+    [HttpPut("avatar-frame")]
+    [Authorize(Roles = UserRole.Admin)]
+    [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetAvatarFrame([FromBody] SetAvatarFrameDto dto)
+        => Ok(await _profileService.SetAvatarFrameAsync(CurrentUserId, string.IsNullOrWhiteSpace(dto.Frame) ? null : dto.Frame));
 }

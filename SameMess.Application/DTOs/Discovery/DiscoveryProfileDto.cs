@@ -20,5 +20,7 @@ public class DiscoveryProfileDto
     public bool IsBoosted { get; set; }
     public bool IsPhotoVerified { get; set; }
     public string ReputationTier { get; set; } = Domain.Enums.ReputationTier.Normal; // chỉ mức/badge, không lộ số điểm
+    public bool IsAdmin { get; set; }
+    public string? AvatarFrame { get; set; }
     public List<PhotoDto> Photos { get; set; } = new();
 }
