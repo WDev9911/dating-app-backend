@@ -16,6 +16,7 @@ public class SwipeService : ISwipeService
     private readonly IMatchRepository _matchRepository;
     private readonly IUserRepository _userRepository;
     private readonly IBlockRepository _blockRepository;
+    private readonly IUserInterestRepository _userInterestRepository;
     private readonly ITaskService _taskService;
     private readonly IReputationService _reputationService;
     private readonly ISubscriptionService _subscriptionService;
@@ -27,6 +28,7 @@ public class SwipeService : ISwipeService
         IMatchRepository matchRepository,
         IUserRepository userRepository,
         IBlockRepository blockRepository,
+        IUserInterestRepository userInterestRepository,
         ITaskService taskService,
         IReputationService reputationService,
         ISubscriptionService subscriptionService,
@@ -37,6 +39,7 @@ public class SwipeService : ISwipeService
         _matchRepository = matchRepository;
         _userRepository = userRepository;
         _blockRepository = blockRepository;
+        _userInterestRepository = userInterestRepository;
         _taskService = taskService;
         _reputationService = reputationService;
         _subscriptionService = subscriptionService;
@@ -214,6 +217,7 @@ public class SwipeService : ISwipeService
 
         var users = await _userRepository.GetWithProfileAndPhotosByIdsAsync(visible.Select(s => s.SwiperId));
         var byId = users.ToDictionary(u => u.Id);
+        var interestsByUser = await _userInterestRepository.GetNamesByUserIdsAsync(byId.Keys);
 
         var result = new List<LikedMeProfileDto>();
         foreach (var swipe in visible)
@@ -235,6 +239,7 @@ public class SwipeService : ISwipeService
                 IsSuperLike = swipe.Action == SwipeAction.SuperLike,
                 IsAdmin = user.Role == UserRole.Admin,
                 AvatarFrame = user.Profile?.AvatarFrame,
+                Interests = interestsByUser.TryGetValue(user.Id, out var names) ? names : new List<string>(),
                 PhotosLocked = !revealPhotos,
                 Photos = photos,
             });
