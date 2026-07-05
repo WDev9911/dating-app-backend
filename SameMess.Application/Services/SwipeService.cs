@@ -61,13 +61,17 @@ public class SwipeService : ISwipeService
         var existingSwipe = await _swipeRepository.GetAsync(userId, dto.TargetUserId);
         if (existingSwipe is not null)
         {
-            // Cho phép "đổi ý" theo cả 2 chiều:
+            // Cho phép "đổi ý" hoặc "lặp lại quyết định cũ" (vd. gặp lại người này ở chế độ
+            // "tải lại"), thay vì chặn cứng bằng 409:
             //  - Pass → Like/SuperLike (vd. từ tab "Đã thích bạn")
             //  - Like/SuperLike → Pass (vd. xem lại ở chế độ "tải lại" rồi đổi ý không thích nữa)
-            // Mọi trường hợp khác (đổi cùng loại, hoặc SuperLike ↔ Like) giữ nguyên 409.
+            //  - Cùng 1 hành động lặp lại (vd. Pass lại người đã từng Pass) — vẫn cập nhật
+            //    CreatedAt để lượt này tính là lượt gần nhất, tránh Undo "lạc" về một lượt cũ hơn.
+            // Chỉ còn chặn 409 khi đổi qua lại giữa Like ↔ SuperLike.
             var isPassToLike = existingSwipe.Action == SwipeAction.Pass && SwipeAction.IsLike(dto.Action);
             var isLikeToPass = SwipeAction.IsLike(existingSwipe.Action) && dto.Action == SwipeAction.Pass;
-            if (isPassToLike || isLikeToPass)
+            var isSameAction = existingSwipe.Action == dto.Action;
+            if (isPassToLike || isLikeToPass || isSameAction)
             {
                 existingSwipe.Action = dto.Action;
                 existingSwipe.CreatedAt = DateTime.UtcNow;
