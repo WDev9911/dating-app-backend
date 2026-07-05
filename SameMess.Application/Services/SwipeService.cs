@@ -61,17 +61,24 @@ public class SwipeService : ISwipeService
         var existingSwipe = await _swipeRepository.GetAsync(userId, dto.TargetUserId);
         if (existingSwipe is not null)
         {
-            // Cho phép "đổi ý": nếu trước đó Pass và giờ Like/SuperLike (vd. từ tab "Đã thích bạn")
-            // thì nâng cấp lượt vuốt thay vì chặn. Mọi trường hợp khác giữ nguyên 409.
-            if (existingSwipe.Action == SwipeAction.Pass && SwipeAction.IsLike(dto.Action))
+            // Cho phép "đổi ý" theo cả 2 chiều:
+            //  - Pass → Like/SuperLike (vd. từ tab "Đã thích bạn")
+            //  - Like/SuperLike → Pass (vd. xem lại ở chế độ "tải lại" rồi đổi ý không thích nữa)
+            // Mọi trường hợp khác (đổi cùng loại, hoặc SuperLike ↔ Like) giữ nguyên 409.
+            var isPassToLike = existingSwipe.Action == SwipeAction.Pass && SwipeAction.IsLike(dto.Action);
+            var isLikeToPass = SwipeAction.IsLike(existingSwipe.Action) && dto.Action == SwipeAction.Pass;
+            if (isPassToLike || isLikeToPass)
             {
                 existingSwipe.Action = dto.Action;
                 existingSwipe.CreatedAt = DateTime.UtcNow;
 
                 Guid? upgradeMatchId = null;
-                var reverseUp = await _swipeRepository.GetAsync(dto.TargetUserId, userId);
-                if (reverseUp is not null && SwipeAction.IsLike(reverseUp.Action))
-                    upgradeMatchId = await EnsureMatchAsync(userId, dto.TargetUserId);
+                if (isPassToLike)
+                {
+                    var reverseUp = await _swipeRepository.GetAsync(dto.TargetUserId, userId);
+                    if (reverseUp is not null && SwipeAction.IsLike(reverseUp.Action))
+                        upgradeMatchId = await EnsureMatchAsync(userId, dto.TargetUserId);
+                }
 
                 await _swipeRepository.SaveChangesAsync();
 
