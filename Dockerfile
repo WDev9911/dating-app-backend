@@ -22,6 +22,14 @@ COPY --from=build /app/publish .
 # và Program.cs sẽ lắng nghe theo PORT đó (ghi đè dòng này).
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Giảm RAM cho môi trường hạn chế (Render Free 512MB) — tránh crash SIGSEGV (exit 139) do hết bộ nhớ.
+# Server GC (mặc định) ngốn RAM theo số CPU; chuyển sang Workstation GC + tiết kiệm bộ nhớ.
+ENV DOTNET_gcServer=0
+ENV DOTNET_GCConserveMemory=9
+ENV DOTNET_gcConcurrent=0
+ENV DOTNET_GCHeapHardLimit=0x1A000000
+
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "SameMess.API.dll"]
