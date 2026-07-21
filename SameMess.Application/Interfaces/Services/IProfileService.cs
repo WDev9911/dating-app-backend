@@ -5,7 +5,8 @@ namespace SameMess.Application.Interfaces.Services;
 public interface IProfileService
 {
     Task<ProfileDto> GetMyProfileAsync(Guid userId);
-    Task<ProfileDto> GetPublicProfileAsync(Guid userId);
+    /// <summary>Hồ sơ công khai; viewerId để gate hiển thị review theo gói (Gold mới đọc được nội dung).</summary>
+    Task<ProfileDto> GetPublicProfileAsync(Guid viewerId, Guid userId);
     Task<ProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
     Task<ProfileDto> UpdateLocationAsync(Guid userId, UpdateLocationDto dto);
 

@@ -46,7 +46,7 @@ public class ProfileController : ApiControllerBase
     [HttpGet("{userId:guid}")]
     [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPublicProfile(Guid userId)
-        => Ok(await _profileService.GetPublicProfileAsync(userId));
+        => Ok(await _profileService.GetPublicProfileAsync(CurrentUserId, userId));
 
     /// <summary>Cập nhật thông tin hồ sơ (tên, giới tính, ngày sinh, bio, mục tiêu...).</summary>
     [HttpPut]

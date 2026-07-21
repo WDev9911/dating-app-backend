@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IDailyService, DailyService>();
         services.AddScoped<IConnectionService, ConnectionService>();
         services.AddScoped<IVenueService, VenueService>();
+        services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<IDiscoveryService, DiscoveryService>();
         services.AddScoped<ISwipeService, SwipeService>();
         services.AddScoped<IMatchService, MatchService>();

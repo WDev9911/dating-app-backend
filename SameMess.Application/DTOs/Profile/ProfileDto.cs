@@ -1,4 +1,5 @@
 using SameMess.Application.DTOs.Preference;
+using SameMess.Application.DTOs.Review;
 
 namespace SameMess.Application.DTOs.Profile;
 
@@ -23,4 +24,10 @@ public class ProfileDto
     public bool IsAdmin { get; set; }
     public List<PhotoDto> Photos { get; set; } = new();
     public PreferenceDto? Preference { get; set; }
+
+    // Đánh giá sau buổi hẹn (điểm TB hiện cho mọi người; danh sách chỉ mở cho Gold)
+    public double RatingAvg { get; set; }
+    public int RatingCount { get; set; }
+    public bool ReviewsLocked { get; set; }
+    public List<DateReviewDto> Reviews { get; set; } = new();
 }

@@ -47,6 +47,7 @@ public class AppDbContext : DbContext
     public DbSet<Venue> Venues { get; set; }
     public DbSet<VenueCombo> VenueCombos { get; set; }
     public DbSet<DatePassOrder> DatePassOrders { get; set; }
+    public DbSet<DateReview> DateReviews { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

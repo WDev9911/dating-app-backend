@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<IVenueRepository, VenueRepository>();
         services.AddScoped<IVenueComboRepository, VenueComboRepository>();
         services.AddScoped<IDatePassOrderRepository, DatePassOrderRepository>();
+        services.AddScoped<IDateReviewRepository, DateReviewRepository>();
 
         services.AddScoped<ITokenService, TokenService>();
 

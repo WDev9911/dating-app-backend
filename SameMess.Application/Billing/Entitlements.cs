@@ -12,6 +12,7 @@ public class PlanEntitlements
     public bool CanBoost { get; init; }
     public bool CanSeeLikedMePhotos { get; init; }
     public int SuperLikesPerDay { get; init; }        // Super Swipe/ngày: Free 0, Plus 5, Gold 10
+    public bool CanSeeDateReviews { get; init; }       // đọc review buổi hẹn của người khác (chỉ Gold)
 }
 
 public static class Entitlements
@@ -28,6 +29,7 @@ public static class Entitlements
             CanBoost = true,
             CanSeeLikedMePhotos = true,
             SuperLikesPerDay = 10,
+            CanSeeDateReviews = true,
         },
         PlanCode.Plus => new PlanEntitlements
         {

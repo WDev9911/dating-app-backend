@@ -19,6 +19,7 @@ public class ProfileService : IProfileService
     private readonly ITaskService _taskService;
     private readonly IReputationService _reputationService;
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IReviewService _reviewService;
     private readonly IMapper _mapper;
 
     public ProfileService(
@@ -28,6 +29,7 @@ public class ProfileService : IProfileService
         ITaskService taskService,
         IReputationService reputationService,
         ISubscriptionService subscriptionService,
+        IReviewService reviewService,
         IMapper mapper)
     {
         _userRepository = userRepository;
@@ -36,24 +38,38 @@ public class ProfileService : IProfileService
         _taskService = taskService;
         _reputationService = reputationService;
         _subscriptionService = subscriptionService;
+        _reviewService = reviewService;
         _mapper = mapper;
     }
 
     public async Task<ProfileDto> GetMyProfileAsync(Guid userId)
     {
         var user = await LoadUserAsync(userId);
-        return _mapper.Map<ProfileDto>(user);
+        var dto = _mapper.Map<ProfileDto>(user);
+        await AttachReviewsAsync(dto, userId, userId);
+        return dto;
     }
 
     /// <summary>Hồ sơ công khai của người khác (ẩn preference + toạ độ chính xác).</summary>
-    public async Task<ProfileDto> GetPublicProfileAsync(Guid userId)
+    public async Task<ProfileDto> GetPublicProfileAsync(Guid viewerId, Guid userId)
     {
         var user = await LoadUserAsync(userId);
         var dto = _mapper.Map<ProfileDto>(user);
         dto.Preference = null;
         dto.Latitude = null;
         dto.Longitude = null;
+        await AttachReviewsAsync(dto, viewerId, userId);
         return dto;
+    }
+
+    /// <summary>Gắn điểm sao TB + danh sách review (danh sách chỉ mở cho Gold).</summary>
+    private async Task AttachReviewsAsync(ProfileDto dto, Guid viewerId, Guid targetUserId)
+    {
+        var block = await _reviewService.GetProfileReviewsAsync(viewerId, targetUserId);
+        dto.RatingAvg = block.RatingAvg;
+        dto.RatingCount = block.RatingCount;
+        dto.ReviewsLocked = block.Locked;
+        dto.Reviews = block.Reviews;
     }
 
     public async Task<ProfileDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
