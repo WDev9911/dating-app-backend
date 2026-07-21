@@ -65,8 +65,7 @@ public class ReviewService : IReviewService
         await _reviewRepository.AddAsync(review);
         await _reviewRepository.SaveChangesAsync();
 
-        var reviewer = await _userRepository.GetByIdAsync(reviewerId);
-        return ToDto(review, reviewer?.Profile?.DisplayName ?? "Người ẩn danh", reviewer?.Profile?.AvatarUrl);
+        return ToDto(review);
     }
 
     public async Task<List<PendingReviewDto>> GetPendingAsync(Guid userId)
@@ -106,33 +105,45 @@ public class ReviewService : IReviewService
         var dto = new ProfileReviewsDto { RatingCount = count, RatingAvg = Math.Round(avg, 1) };
         if (count == 0) return dto;
 
-        // Điểm trung bình hiện cho mọi người; NỘI DUNG review chỉ mở cho Gold.
+        var reviews = await _reviewRepository.GetForRevieweeAsync(targetUserId);
+
+        // CHÍNH CHỦ xem hồ sơ mình → đọc được nội dung + LỘ danh tính người đã đánh giá.
+        if (viewerId == targetUserId)
+        {
+            var reviewers = (await _userRepository.GetWithProfileByIdsAsync(reviews.Select(r => r.ReviewerId).Distinct()))
+                .ToDictionary(u => u.Id, u => u.Profile);
+            dto.Reviews = reviews.Select(r =>
+            {
+                reviewers.TryGetValue(r.ReviewerId, out var p);
+                return ToDto(r, p?.DisplayName ?? "Người dùng", p?.AvatarUrl);
+            }).ToList();
+            return dto;
+        }
+
+        // NGƯỜI KHÁC xem → nội dung chỉ mở cho Gold, và luôn ẨN DANH người viết.
         var ent = await _subscriptionService.GetEntitlementsAsync(viewerId);
         if (!ent.CanSeeDateReviews)
         {
             dto.Locked = true;
             return dto;
         }
-
-        var reviews = await _reviewRepository.GetForRevieweeAsync(targetUserId);
-        var reviewers = (await _userRepository.GetWithProfileByIdsAsync(reviews.Select(r => r.ReviewerId).Distinct()))
-            .ToDictionary(u => u.Id, u => u.Profile);
-        dto.Reviews = reviews.Select(r =>
-        {
-            reviewers.TryGetValue(r.ReviewerId, out var p);
-            return ToDto(r, p?.DisplayName ?? "Người ẩn danh", p?.AvatarUrl);
-        }).ToList();
+        dto.Reviews = reviews.Select(r => ToDto(r)).ToList();
         return dto;
     }
 
-    private static DateReviewDto ToDto(DateReview r, string reviewerName, string? reviewerAvatarUrl) => new()
+    /// <summary>reviewerName != null → lộ danh tính (chính chủ xem); null → ẩn danh (người khác xem).</summary>
+    private static DateReviewDto ToDto(DateReview r, string? reviewerName = null, string? reviewerAvatarUrl = null)
     {
-        Id = r.Id,
-        ReviewerId = r.ReviewerId,
-        ReviewerName = reviewerName,
-        ReviewerAvatarUrl = reviewerAvatarUrl,
-        Rating = r.Rating,
-        Comment = r.Comment,
-        CreatedAt = r.CreatedAt,
-    };
+        var reveal = reviewerName != null;
+        return new DateReviewDto
+        {
+            Id = r.Id,
+            ReviewerId = reveal ? r.ReviewerId : Guid.Empty,
+            ReviewerName = reveal ? reviewerName! : "Ẩn danh",
+            ReviewerAvatarUrl = reveal ? reviewerAvatarUrl : null,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+        };
+    }
 }
