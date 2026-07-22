@@ -30,6 +30,10 @@ ENV DOTNET_GCConserveMemory=9
 ENV DOTNET_gcConcurrent=0
 ENV DOTNET_GCHeapHardLimit=0x1A000000
 
+# Tắt theo dõi file appsettings (reloadOnChange). Container giới hạn 128 inotify instances;
+# FileSystemWatcher làm CreateBuilder ném IOException lúc khởi động -> app sập (exit 139).
+ENV DOTNET_hostBuilder__reloadConfigOnChange=false
+
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "SameMess.API.dll"]
